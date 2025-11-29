@@ -1,0 +1,10 @@
+<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Orange background -->
+  <rect width="1024" height="1024" fill="#FF6B35"/>
+  
+  <!-- White circle -->
+  <circle cx="512" cy="512" r="400" fill="#FFFFFF"/>
+  
+  <!-- Checkmark -->
+  <path d="M300 500 L450 650 L750 350" stroke="#FF6B35" stroke-width="80" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

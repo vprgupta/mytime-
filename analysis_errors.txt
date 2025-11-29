@@ -1,0 +1,519 @@
+﻿Analyzing mytime...                                             
+
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:2:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/core/config/navigation_service.dart' - lib\core\config\app_routes.dart:2:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:3:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/schedule/screens/home_screen.dart' - lib\core\config\app_routes.dart:3:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:4:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/settings/screens/settings_screen.dart' - lib\core\config\app_routes.dart:4:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:5:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/journal/screens/thoughts_screen.dart' - lib\core\config\app_routes.dart:5:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:6:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/journal/screens/journal_screen.dart' - lib\core\config\app_routes.dart:6:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:8:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/journal/screens/ideas_screen.dart' - lib\core\config\app_routes.dart:8:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:9:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/goals/screens/modern_goals_screen.dart' - lib\core\config\app_routes.dart:9:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:10:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/schedule/screens/schedule_screen.dart' - lib\core\config\app_routes.dart:10:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:11:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/learning/screens/smart_learning_screen.dart' - lib\core\config\app_routes.dart:11:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:12:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/reminders/screens/reminders_screen.dart' - lib\core\config\app_routes.dart:12:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:13:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/streak/screens/leaderboard_screen.dart' - lib\core\config\app_routes.dart:13:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:14:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/reading_stats/screens/reading_stats_screen.dart' - lib\core\config\app_routes.dart:14:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:15:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/social/screens/friends_screen.dart' - lib\core\config\app_routes.dart:15:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:16:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/social/screens/social_hub_screen.dart' - lib\core\config\app_routes.dart:16:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:17:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/streak/screens/streak_screen.dart' - lib\core\config\app_routes.dart:17:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:18:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/app_blocking/screens/app_blocking_screen.dart' - lib\core\config\app_routes.dart:18:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:19:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/app_blocking/screens/app_selection_screen.dart' - lib\core\config\app_routes.dart:19:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:20:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/app_blocking/screens/permission_setup_screen.dart' - lib\core\config\app_routes.dart:20:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:21:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/app_blocking/screens/blocking_schedule_screen.dart' - lib\core\config\app_routes.dart:21:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:22:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/app_blocking/screens/bypass_attempts_screen.dart' - lib\core\config\app_routes.dart:22:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\config\app_routes.dart:23:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/app_blocking/screens/blocking_overlay_screen.dart' - lib\core\config\app_routes.dart:23:8 - uri_does_not_exist
+  error - Undefined name 'NavigationService' - lib\core\config\app_routes.dart:51:19 - undefined_identifier
+  error - The name 'HomeScreen' isn't a class - lib\core\config\app_routes.dart:56:44 - creation_with_non_type
+  error - The name 'SettingsScreen' isn't a class - lib\core\config\app_routes.dart:60:44 - creation_with_non_type
+  error - The name 'ThoughtsScreen' isn't a class - lib\core\config\app_routes.dart:64:44 - creation_with_non_type
+  error - The name 'JournalScreen' isn't a class - lib\core\config\app_routes.dart:68:44 - creation_with_non_type
+  error - The name 'IdeasScreen' isn't a class - lib\core\config\app_routes.dart:73:44 - creation_with_non_type
+  error - The name 'ModernGoalsScreen' isn't a class - lib\core\config\app_routes.dart:77:44 - creation_with_non_type
+  error - The name 'ScheduleScreen' isn't a class - lib\core\config\app_routes.dart:82:44 - creation_with_non_type
+  error - The name 'SmartLearningScreen' isn't a class - lib\core\config\app_routes.dart:86:44 - creation_with_non_type
+  error - The name 'RemindersScreen' isn't a class - lib\core\config\app_routes.dart:90:44 - creation_with_non_type
+  error - The name 'LeaderboardScreen' isn't a class - lib\core\config\app_routes.dart:94:44 - creation_with_non_type
+  error - The name 'ReadingStatsScreen' isn't a class - lib\core\config\app_routes.dart:98:44 - creation_with_non_type
+  error - The name 'FriendsScreen' isn't a class - lib\core\config\app_routes.dart:102:44 - creation_with_non_type
+  error - The name 'SocialHubScreen' isn't a class - lib\core\config\app_routes.dart:106:44 - creation_with_non_type
+  error - The name 'StreakScreen' isn't a class - lib\core\config\app_routes.dart:110:44 - creation_with_non_type
+  error - The name 'AppBlockingScreen' isn't a class - lib\core\config\app_routes.dart:114:44 - creation_with_non_type
+  error - The name 'AppSelectionScreen' isn't a class - lib\core\config\app_routes.dart:118:44 - creation_with_non_type
+  error - The name 'PermissionSetupScreen' isn't a class - lib\core\config\app_routes.dart:122:44 - creation_with_non_type
+  error - The name 'BlockingScheduleScreen' isn't a class - lib\core\config\app_routes.dart:126:44 - creation_with_non_type
+  error - The name 'BypassAttemptsScreen' isn't a class - lib\core\config\app_routes.dart:130:44 - creation_with_non_type
+  error - The method 'BlockingOverlayScreen' isn't defined for the type 'AppRoutes' - lib\core\config\app_routes.dart:137:18 - undefined_method
+   info - 'background' is deprecated and shouldn't be used. Use surface instead. This feature was deprecated after v3.18.0-0.1.pre - lib\core\config\app_theme.dart:14:9 - deprecated_member_use
+   info - 'onBackground' is deprecated and shouldn't be used. Use onSurface instead. This feature was deprecated after v3.18.0-0.1.pre - lib\core\config\app_theme.dart:19:9 - deprecated_member_use
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\app_lifecycle_manager.dart:2:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/schedule/services/task_timer_service.dart' - lib\core\services\app_lifecycle_manager.dart:2:8 - uri_does_not_exist
+  error - Undefined class 'TaskTimerService' - lib\core\services\app_lifecycle_manager.dart:5:10 - undefined_class
+  error - Undefined class 'TaskTimerService' - lib\core\services\app_lifecycle_manager.dart:7:31 - undefined_class
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\notification_listener_service.dart:2:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/core/services/tts_service.dart' - lib\core\services\notification_listener_service.dart:2:8 - uri_does_not_exist
+  error - Undefined class 'TTSService' - lib\core\services\notification_listener_service.dart:10:3 - undefined_class
+  error - Undefined class 'TTSService' - lib\core\services\notification_listener_service.dart:13:13 - undefined_class
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\notification_service.dart:5:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/core/services/tts_service.dart' - lib\core\services\notification_service.dart:5:8 - uri_does_not_exist
+  error - Undefined class 'TTSService' - lib\core\services\notification_service.dart:10:3 - undefined_class
+  error - Undefined class 'TTSService' - lib\core\services\notification_service.dart:12:22 - undefined_class
+  error - Undefined class 'TTSService' - lib\core\services\notification_service.dart:16:22 - undefined_class
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:4:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/session/models/activity.dart' - lib\core\services\storage_service.dart:4:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:5:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/session/models/session.dart' - lib\core\services\storage_service.dart:5:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:6:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/schedule/models/task.dart' - lib\core\services\storage_service.dart:6:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:7:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/schedule/models/schedule_slot.dart' - lib\core\services\storage_service.dart:7:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:8:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/streak/models/streak.dart' - lib\core\services\storage_service.dart:8:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:9:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/learning/models/learning_session.dart' - lib\core\services\storage_service.dart:9:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:10:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/learning/models/learning_goal.dart' - lib\core\services\storage_service.dart:10:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:11:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/learning/models/learning_roadmap.dart' - lib\core\services\storage_service.dart:11:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:12:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/learning/models/daily_learning_schedule.dart' - lib\core\services\storage_service.dart:12:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:13:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/social/models/friend.dart' - lib\core\services\storage_service.dart:13:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:14:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/social/models/study_group.dart' - lib\core\services\storage_service.dart:14:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:15:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/app_blocking/models/blocked_app.dart' - lib\core\services\storage_service.dart:15:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:16:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/app_blocking/models/blocking_session.dart' - lib\core\services\storage_service.dart:16:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:17:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/app_blocking/models/blocking_rule.dart' - lib\core\services\storage_service.dart:17:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\services\storage_service.dart:18:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/app_blocking/models/bypass_attempt.dart' - lib\core\services\storage_service.dart:18:8 - uri_does_not_exist
+  error - The method 'TaskAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:32:32 - undefined_method
+  error - The method 'SessionAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:33:32 - undefined_method
+  error - The method 'ActivityAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:34:32 - undefined_method
+  error - The method 'ScheduleSlotAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:35:32 - undefined_method
+  error - The method 'StreakAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:36:32 - undefined_method
+  error - The method 'LearningSessionAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:37:32 - undefined_method
+  error - The method 'LearningGoalAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:38:32 - undefined_method
+  error - The method 'LearningRoadmapAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:39:32 - undefined_method
+  error - The method 'DailyLearningScheduleAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:40:32 - undefined_method
+  error - The method 'LearningTaskAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:41:32 - undefined_method
+  error - The method 'FriendAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:42:32 - undefined_method
+  error - The method 'StudyGroupAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:43:32 - undefined_method
+  error - The method 'BlockedAppAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:44:32 - undefined_method
+  error - The method 'BlockingSessionAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:45:32 - undefined_method
+  error - The method 'BlockingRuleAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:46:32 - undefined_method
+  error - The method 'BypassAttemptAdapter' isn't defined for the type 'StorageService' - lib\core\services\storage_service.dart:47:32 - undefined_method
+  error - The name 'Task' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:59:22 - non_type_as_type_argument
+  error - The name 'Session' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:60:22 - non_type_as_type_argument
+  error - The name 'Activity' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:61:22 - non_type_as_type_argument
+  error - The name 'ScheduleSlot' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:62:22 - non_type_as_type_argument
+  error - The name 'Streak' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:63:22 - non_type_as_type_argument
+  error - The name 'LearningSession' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:64:22 - non_type_as_type_argument
+  error - The name 'LearningGoal' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:65:22 - non_type_as_type_argument
+  error - The name 'BlockedApp' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:66:22 - non_type_as_type_argument
+  error - The name 'BlockingSession' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:67:22 - non_type_as_type_argument
+  error - The name 'Task' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:81:7 - non_type_as_type_argument
+  error - The name 'Task' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:83:23 - non_type_as_type_argument
+  error - Undefined class 'Task' - lib\core\services\storage_service.dart:90:24 - undefined_class
+  error - Undefined class 'Task' - lib\core\services\storage_service.dart:100:27 - undefined_class
+  error - Undefined class 'Task' - lib\core\services\storage_service.dart:109:27 - undefined_class
+  error - The name 'Session' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:119:7 - non_type_as_type_argument
+  error - The name 'Session' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:119:42 - non_type_as_type_argument
+  error - Undefined class 'Session' - lib\core\services\storage_service.dart:120:27 - undefined_class
+  error - The name 'Activity' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:126:7 - non_type_as_type_argument
+  error - The name 'Activity' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:126:45 - non_type_as_type_argument
+  error - Undefined class 'Activity' - lib\core\services\storage_service.dart:127:28 - undefined_class
+  error - Undefined class 'Activity' - lib\core\services\storage_service.dart:131:31 - undefined_class
+  error - The name 'ScheduleSlot' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:136:7 - non_type_as_type_argument
+  error - The name 'ScheduleSlot' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:136:55 - non_type_as_type_argument
+  error - The name 'ScheduleSlot' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:137:15 - non_type_as_type_argument
+  error - The name 'ScheduleSlot' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:141:39 - non_type_as_type_argument
+  error - The name 'Streak' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:150:7 - non_type_as_type_argument
+  error - The name 'Streak' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:150:43 - non_type_as_type_argument
+  error - The name 'Streak' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:151:15 - non_type_as_type_argument
+  error - The name 'Streak' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:155:33 - non_type_as_type_argument
+  error - The name 'LearningSession' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:281:7 - non_type_as_type_argument
+  error - The name 'LearningSession' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:281:61 - non_type_as_type_argument
+  error - The name 'LearningSession' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:282:15 - non_type_as_type_argument
+  error - Undefined class 'LearningSession' - lib\core\services\storage_service.dart:286:36 - undefined_class
+  error - The name 'LearningGoal' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:292:7 - non_type_as_type_argument
+  error - The name 'LearningGoal' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:292:60 - non_type_as_type_argument
+  error - The name 'LearningGoal' isn't a type, so it can't be used as a type argument - lib\core\services\storage_service.dart:293:15 - non_type_as_type_argument
+  error - Undefined class 'LearningGoal' - lib\core\services\storage_service.dart:297:33 - undefined_class
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\app_card.dart:25:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\app_card.dart:26:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\app_card.dart:34:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\app_card.dart:39:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\app_card.dart:45:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\app_card.dart:54:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\app_card.dart:55:39 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:198:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:214:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:214:52 - prefer_const_constructors
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\enhanced_tour.dart:217:35 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:219:23 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:223:18 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:235:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:244:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:252:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:258:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:266:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:274:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:282:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:285:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:301:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:311:22 - prefer_const_constructors
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\enhanced_tour.dart:313:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\enhanced_tour.dart:315:28 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:320:28 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:327:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\enhanced_tour.dart:340:23 - prefer_const_constructors
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\enhanced_tour.dart:471:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\enhanced_tour.dart:508:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\enhanced_tour.dart:523:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\enhanced_tour.dart:590:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\enhanced_tour.dart:605:43 - deprecated_member_use
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\widgets\global_scaffold.dart:5:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/core/config/app_routes.dart' - lib\core\widgets\global_scaffold.dart:5:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\widgets\global_scaffold.dart:6:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/reminders/models/reminder.dart' - lib\core\widgets\global_scaffold.dart:6:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\widgets\global_scaffold.dart:7:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/core/services/storage_service.dart' - lib\core\widgets\global_scaffold.dart:7:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\widgets\global_scaffold.dart:8:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/core/services/notification_service.dart' - lib\core\widgets\global_scaffold.dart:8:8 - uri_does_not_exist
+   info - The imported package 'mytask' isn't a dependency of the importing package - lib\core\widgets\global_scaffold.dart:9:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:mytask/features/reading_stats/widgets/reading_stats_app_bar_widget.dart' - lib\core\widgets\global_scaffold.dart:9:8 - uri_does_not_exist
+  error - The name 'ReadingStatsAppBarWidget' isn't a class - lib\core\widgets\global_scaffold.dart:39:32 - creation_with_non_type
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\global_scaffold.dart:64:29 - prefer_const_constructors
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\global_scaffold.dart:77:35 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\global_scaffold.dart:79:23 - prefer_const_constructors
+  error - Undefined name 'AppRoutes' - lib\core\widgets\global_scaffold.dart:120:28 - undefined_identifier
+  error - Undefined name 'AppRoutes' - lib\core\widgets\global_scaffold.dart:123:28 - undefined_identifier
+  error - Undefined class 'ReminderCategory' - lib\core\widgets\global_scaffold.dart:147:9 - undefined_class
+  error - Undefined class 'Reminder' - lib\core\widgets\global_scaffold.dart:148:18 - undefined_class
+  error - Undefined class 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:164:3 - undefined_class
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:164:38 - undefined_identifier
+  error - Undefined name 'ReminderCategory' - lib\core\widgets\global_scaffold.dart:214:44 - undefined_identifier
+  error - Undefined name 'ReminderCategory' - lib\core\widgets\global_scaffold.dart:216:40 - undefined_identifier
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:313:29 - undefined_identifier
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:319:63 - undefined_identifier
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\core\widgets\global_scaffold.dart:372:17 - deprecated_member_use
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:443:29 - undefined_identifier
+  error - The method 'Reminder' isn't defined for the type '_AddReminderSheetState' - lib\core\widgets\global_scaffold.dart:459:22 - undefined_method
+  error - Undefined class 'StorageService' - lib\core\widgets\global_scaffold.dart:478:9 - undefined_class
+  error - The method 'StorageService' isn't defined for the type '_RemindersPopupState' - lib\core\widgets\global_scaffold.dart:478:42 - undefined_method
+  error - Undefined class 'NotificationService' - lib\core\widgets\global_scaffold.dart:479:9 - undefined_class
+  error - The method 'NotificationService' isn't defined for the type '_RemindersPopupState' - lib\core\widgets\global_scaffold.dart:479:52 - undefined_method
+  error - The name 'Reminder' isn't a type, so it can't be used as a type argument - lib\core\widgets\global_scaffold.dart:480:8 - non_type_as_type_argument
+  error - Undefined class 'ReminderCategory' - lib\core\widgets\global_scaffold.dart:481:3 - undefined_class
+  error - Undefined name 'ReminderCategory' - lib\core\widgets\global_scaffold.dart:481:40 - undefined_identifier
+  error - Undefined name 'Reminder' - lib\core\widgets\global_scaffold.dart:492:41 - undefined_identifier
+  error - The method 'toJson' can't be unconditionally invoked because the receiver can be 'null' - lib\core\widgets\global_scaffold.dart:497:51 - unchecked_use_of_nullable_value
+  error - Undefined class 'Reminder' - lib\core\widgets\global_scaffold.dart:501:21 - undefined_class
+  error - Undefined class 'Reminder' - lib\core\widgets\global_scaffold.dart:509:24 - undefined_class
+  error - The property 'id' can't be unconditionally accessed because the receiver can be 'null' - lib\core\widgets\global_scaffold.dart:511:52 - unchecked_use_of_nullable_value
+  error - The property 'id' can't be unconditionally accessed because the receiver can be 'null' - lib\core\widgets\global_scaffold.dart:524:53 - unchecked_use_of_nullable_value
+  error - The property 'id' can't be unconditionally accessed because the receiver can be 'null' - lib\core\widgets\global_scaffold.dart:528:39 - unchecked_use_of_nullable_value
+  error - The name 'Reminder' isn't a type, so it can't be used as a type argument - lib\core\widgets\global_scaffold.dart:533:8 - non_type_as_type_argument
+  error - The property 'category' can't be unconditionally accessed because the receiver can be 'null' - lib\core\widgets\global_scaffold.dart:534:33 - unchecked_use_of_nullable_value
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\global_scaffold.dart:607:33 - deprecated_member_use
+  error - Undefined name 'ReminderCategory' - lib\core\widgets\global_scaffold.dart:614:19 - undefined_identifier
+  error - The property 'category' can't be unconditionally accessed because the receiver can be 'null' - lib\core\widgets\global_scaffold.dart:616:51 - unchecked_use_of_nullable_value
+  error - The property 'isCompleted' can't be unconditionally accessed because the receiver can be 'null' - lib\core\widgets\global_scaffold.dart:616:78 - unchecked_use_of_nullable_value
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\global_scaffold.dart:677:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\global_scaffold.dart:832:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\global_scaffold.dart:837:45 - deprecated_member_use
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:988:59 - undefined_identifier
+  error - Undefined class 'Reminder' - lib\core\widgets\global_scaffold.dart:1082:33 - undefined_class
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:1088:39 - undefined_identifier
+  error - The body might complete normally, causing 'null' to be returned, but the return type, 'DateTime', is a potentially non-nullable type - lib\core\widgets\global_scaffold.dart:1115:12 - body_might_complete_normally
+  error - Undefined class 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:1115:53 - undefined_class
+  error - Undefined class 'Reminder' - lib\core\widgets\global_scaffold.dart:1115:81 - undefined_class
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:1117:12 - undefined_identifier
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:1119:12 - undefined_identifier
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:1121:12 - undefined_identifier
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:1123:12 - undefined_identifier
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:1125:12 - undefined_identifier
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:1127:12 - undefined_identifier
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:1130:12 - undefined_identifier
+  error - Undefined class 'Reminder' - lib\core\widgets\global_scaffold.dart:1147:25 - undefined_class
+  error - Undefined class 'Reminder' - lib\core\widgets\global_scaffold.dart:1161:25 - undefined_class
+  error - Undefined name 'RepeatFrequency' - lib\core\widgets\global_scaffold.dart:1162:37 - undefined_identifier
+  error - Undefined class 'Reminder' - lib\core\widgets\global_scaffold.dart:1184:38 - undefined_class
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\gradient_button.dart:36:63 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\leaderboard_card.dart:73:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\leaderboard_card.dart:251:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_card.dart:34:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_card.dart:40:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_card.dart:49:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_card.dart:50:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:218:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:219:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:220:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:226:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:231:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:237:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:242:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:311:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:360:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:361:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:362:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:367:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:372:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:394:28 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:395:28 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:399:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:419:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:467:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:468:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:473:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:522:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:525:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:639:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:640:55 - deprecated_member_use
+   info - 'scale' is deprecated and shouldn't be used. Use scaleByVector3, scaleByVector4, or scaleByDouble instead - lib\core\widgets\modern_navbar.dart:645:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:681:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:682:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:692:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:713:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\modern_navbar.dart:744:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\progress_ring.dart:115:23 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\progress_ring.dart:125:31 - deprecated_member_use
+   info - The 'child' argument should be last in widget constructor invocations - lib\core\widgets\rich_text_editor.dart:140:17 - sort_child_properties_last
+   info - The 'child' argument should be last in widget constructor invocations - lib\core\widgets\rich_text_editor.dart:165:17 - sort_child_properties_last
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:189:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:189:61 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:190:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:190:59 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:191:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:191:60 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:192:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:192:61 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:193:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:193:62 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:194:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\widgets\rich_text_editor.dart:194:62 - prefer_const_constructors
+warning - Unused import: '../theme/app_colors.dart' - lib\core\widgets\status_pill.dart:2:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\status_pill.dart:23:22 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\status_pill.dart:26:24 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\providers\app_blocking_provider.dart:53:28 - prefer_const_constructors
+   info - Don't use 'BuildContext's across async gaps - lib\features\app_blocking\providers\app_blocking_provider.dart:87:37 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\app_blocking\providers\app_blocking_provider.dart:128:37 - use_build_context_synchronously
+warning - Unused import: '../../../core/widgets/status_pill.dart' - lib\features\app_blocking\screens\app_blocking_screen.dart:6:8 - unused_import
+   info - Parameter 'key' could be a super parameter - lib\features\app_blocking\screens\app_blocking_screen.dart:17:9 - use_super_parameters
+warning - The left operand can't be null, so the right operand is never executed - lib\features\app_blocking\screens\app_blocking_screen.dart:47:75 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\features\app_blocking\screens\app_blocking_screen.dart:48:81 - dead_null_aware_expression
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:72:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:254:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:257:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:272:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:320:56 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:383:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:449:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:449:85 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:471:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:472:55 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\screens\app_blocking_screen.dart:650:15 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\features\app_blocking\screens\app_blocking_screen.dart:651:27 - prefer_const_literals_to_create_immutables
+warning - The declaration '_buildNamingLimiterSection' isn't referenced - lib\features\app_blocking\screens\app_blocking_screen.dart:694:10 - unused_element
+   info - Don't use 'BuildContext's across async gaps - lib\features\app_blocking\screens\app_blocking_screen.dart:732:26 - use_build_context_synchronously
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\screens\app_blocking_screen.dart:798:19 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\features\app_blocking\screens\app_blocking_screen.dart:799:19 - prefer_const_literals_to_create_immutables
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:804:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:807:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:820:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:861:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:896:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:896:94 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:899:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:899:95 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_blocking_screen.dart:1059:28 - deprecated_member_use
+warning - Unused import: '../../../core/widgets/app_button.dart' - lib\features\app_blocking\screens\app_selection_screen.dart:5:8 - unused_import
+warning - Unused import: '../../../core/widgets/app_card.dart' - lib\features\app_blocking\screens\app_selection_screen.dart:6:8 - unused_import
+   info - Parameter 'key' could be a super parameter - lib\features\app_blocking\screens\app_selection_screen.dart:14:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_selection_screen.dart:115:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_selection_screen.dart:121:63 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_selection_screen.dart:156:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_selection_screen.dart:164:80 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_selection_screen.dart:197:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_selection_screen.dart:205:82 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_selection_screen.dart:224:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_selection_screen.dart:361:33 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\features\app_blocking\screens\app_selection_screen.dart:474:70 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\app_selection_screen.dart:507:48 - deprecated_member_use
+warning - Unused import: '../../../core/widgets/app_button.dart' - lib\features\app_blocking\screens\app_usage_limiter_screen.dart:7:8 - unused_import
+   info - Parameter 'key' could be a super parameter - lib\features\app_blocking\screens\app_usage_limiter_screen.dart:11:9 - use_super_parameters
+   info - Don't use 'BuildContext's across async gaps - lib\features\app_blocking\screens\app_usage_limiter_screen.dart:37:28 - use_build_context_synchronously
+warning - The left operand can't be null, so the right operand is never executed - lib\features\app_blocking\screens\app_usage_limiter_screen.dart:258:45 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\features\app_blocking\screens\app_usage_limiter_screen.dart:290:64 - dead_null_aware_expression
+   info - Parameter 'key' could be a super parameter - lib\features\app_blocking\screens\blocking_overlay_screen.dart:9:9 - use_super_parameters
+   info - 'onPopInvoked' is deprecated and shouldn't be used. Use onPopInvokedWithResult instead. This feature was deprecated after v3.22.0-12.0.pre - lib\features\app_blocking\screens\blocking_overlay_screen.dart:65:7 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:78:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:80:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:135:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:169:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:179:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:181:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:189:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:222:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:224:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:230:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:244:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:255:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\blocking_overlay_screen.dart:262:38 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\features\app_blocking\screens\blocking_schedule_screen.dart:9:9 - use_super_parameters
+   info - Don't use 'BuildContext's across async gaps - lib\features\app_blocking\screens\blocking_schedule_screen.dart:236:9 - use_build_context_synchronously
+   info - Parameter 'key' could be a super parameter - lib\features\app_blocking\screens\bypass_attempts_screen.dart:8:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\bypass_attempts_screen.dart:206:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\bypass_attempts_screen.dart:240:65 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\features\app_blocking\screens\permissions_setup_screen.dart:6:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\permissions_setup_screen.dart:135:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\permissions_setup_screen.dart:136:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\permissions_setup_screen.dart:136:81 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\permissions_setup_screen.dart:158:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\permissions_setup_screen.dart:224:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\screens\permissions_setup_screen.dart:226:52 - deprecated_member_use
+warning - Unused import: 'package:flutter_localizations/flutter_localizations.dart' - lib\features\app_blocking\services\app_blocking_service.dart:5:8 - unused_import
+warning - The value of the field '_currentForegroundApp' isn't used - lib\features\app_blocking\services\app_blocking_service.dart:19:11 - unused_field
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:68:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:107:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:114:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:121:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:150:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:152:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:180:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:207:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:228:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:242:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:245:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:247:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:287:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:289:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:353:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:357:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:359:7 - avoid_print
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_blocking_service.dart:362:39 - prefer_const_constructors
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:376:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:378:7 - avoid_print
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_blocking_service.dart:401:41 - prefer_const_constructors
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:416:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:488:13 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:491:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:531:13 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:534:11 - avoid_print
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_blocking_service.dart:567:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_blocking_service.dart:568:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_blocking_service.dart:569:38 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_blocking_service.dart:576:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_blocking_service.dart:578:21 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_blocking_service.dart:580:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_blocking_service.dart:582:21 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_blocking_service.dart:585:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_blocking_service.dart:593:26 - prefer_const_constructors
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:599:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:602:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:623:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_blocking_service.dart:626:7 - avoid_print
+warning - Unused import: 'package:flutter/material.dart' - lib\features\app_blocking\services\app_usage_limiter_service.dart:2:8 - unused_import
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_usage_limiter_service.dart:68:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_usage_limiter_service.dart:70:7 - avoid_print
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\app_usage_limiter_service.dart:96:48 - prefer_const_constructors
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_usage_limiter_service.dart:182:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_usage_limiter_service.dart:184:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_usage_limiter_service.dart:225:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\app_usage_limiter_service.dart:261:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\bypass_prevention_service.dart:16:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\bypass_prevention_service.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\bypass_prevention_service.dart:32:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\device_admin_service.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\device_admin_service.dart:43:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\device_admin_service.dart:58:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\device_admin_service.dart:75:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\device_admin_service.dart:83:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\device_admin_service.dart:96:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\device_admin_service.dart:175:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\device_admin_service.dart:209:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\device_admin_service.dart:221:7 - avoid_print
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking\services\simple_blocking_test.dart:15:24 - prefer_const_constructors
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\simple_blocking_test.dart:29:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\simple_blocking_test.dart:31:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\simple_blocking_test.dart:38:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\simple_blocking_test.dart:41:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\simple_blocking_test.dart:42:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\simple_blocking_test.dart:43:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\simple_blocking_test.dart:46:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\usage_stats_service.dart:64:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\usage_stats_service.dart:80:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\usage_stats_service.dart:131:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\usage_stats_service.dart:143:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking\services\usage_stats_service.dart:196:7 - avoid_print
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\widgets\modern_header.dart:30:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\widgets\modern_header.dart:74:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking\widgets\quick_actions_hub.dart:116:28 - deprecated_member_use
+warning - Unused import: 'package:installed_apps/app_info.dart' - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:4:8 - unused_import
+   info - Parameter 'key' could be a super parameter - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:14:9 - use_super_parameters
+   info - Use 'const' for final variables initialized to a constant value - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:36:7 - prefer_const_declarations
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:48:7 - avoid_print
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:95:68 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:207:63 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:253:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:255:59 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:260:11 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:261:23 - prefer_const_literals_to_create_immutables
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:310:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:310:80 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:317:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:317:89 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:434:89 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:487:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:487:76 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:495:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:496:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:575:57 - deprecated_member_use
+   info - Use 'const' for final variables initialized to a constant value - lib\features\app_blocking_new\screens\app_blocking_screen_v2.dart:599:7 - prefer_const_declarations
+warning - Unused import: 'package:installed_apps/app_info.dart' - lib\features\app_blocking_new\screens\app_selection_screen_v2.dart:4:8 - unused_import
+   info - Parameter 'key' could be a super parameter - lib\features\app_blocking_new\screens\app_selection_screen_v2.dart:13:9 - use_super_parameters
+   info - Don't use 'BuildContext's across async gaps - lib\features\app_blocking_new\screens\app_selection_screen_v2.dart:184:22 - use_build_context_synchronously
+   info - Parameter 'key' could be a super parameter - lib\features\app_blocking_new\screens\app_selection_screen_v2.dart:202:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\app_blocking_new\screens\app_selection_screen_v2.dart:258:64 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\features\app_blocking_new\screens\permission_setup_screen_v2.dart:8:9 - use_super_parameters
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\screens\permission_setup_screen_v2.dart:40:7 - avoid_print
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking_new\screens\permission_setup_screen_v2.dart:121:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\app_blocking_new\screens\permission_setup_screen_v2.dart:123:22 - prefer_const_constructors
+warning - Unused import: 'dart:io' - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:2:8 - unused_import
+warning - The value of the field '_blockedAppsBox' isn't used - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:16:24 - unused_field
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:54:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:63:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:65:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:74:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:76:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:90:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:106:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:172:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:191:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:230:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:245:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\app_blocking_new\services\app_blocking_service_v2.dart:256:7 - avoid_print
+  error - The name 'MyApp' isn't a class - test\widget_test.dart:16:35 - creation_with_non_type
+

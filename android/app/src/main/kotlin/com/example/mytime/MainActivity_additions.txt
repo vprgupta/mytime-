@@ -1,0 +1,55 @@
+// Add these methods to MainActivity.kt after the openAppSettings() method and before onNewIntent()
+
+    private fun startCommitmentMonitoring() {
+        try {
+            val intent = Intent(this, CommitmentMonitoringService::class.java)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            android.util.Log.d("MainActivity", "Started commitment monitoring service")
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to start commitment monitoring", e)
+        }
+    }
+    
+    private fun requestBatteryOptimizationExemption() {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                val intent = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = android.net.Uri.parse("package:$packageName")
+                }
+                startActivity(intent)
+            }
+        } catch (e: Exception) {
+            openBatteryOptimizationSettings()
+        }
+    }
+    
+    private fun isBatteryOptimizationIgnored(): Boolean {
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                powerManager.isIgnoringBatteryOptimizations(packageName)
+            } else {
+                true
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
+    private fun openBatteryOptimizationSettings() {
+        try {
+            val intent = Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+            startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                val fallbackIntent = Intent(android.provider.Settings.ACTION_BATTERY_SAVER_SETTINGS)
+                startActivity(fallbackIntent)
+            } catch(fallbackE: Exception) {
+                android.util.Log.e("MainActivity", "Failed to open battery settings", fallbackE)
+            }
+        }
+    }

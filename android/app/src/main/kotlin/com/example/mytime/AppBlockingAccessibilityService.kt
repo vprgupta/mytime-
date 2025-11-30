@@ -13,6 +13,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     private val isProcessing = AtomicBoolean(false)
     private var eventCount = 0
     private var lastEventTime = 0L
+    private val lastUsageNotificationTime = mutableMapOf<String, Long>()
     
     companion object {
         var isBlockingActive = false
@@ -117,7 +118,10 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         }
         val isGlobalLockActive = cachedLockEndTime > currentTime
 
-        if (MainActivity.blockedPackages.isEmpty() && !isGlobalLockActive && stickyProtectionUntil < currentTime) {
+        if (MainActivity.blockedPackages.isEmpty() && 
+            MainActivity.limitedPackages.isEmpty() && 
+            !isGlobalLockActive && 
+            stickyProtectionUntil < currentTime) {
             return
         }
 
@@ -298,6 +302,23 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 }
             }
 
+            // 3. Usage Limiter Tracking (Check on both STATE and CONTENT changes)
+            // We throttle this to avoid spamming the bridge (e.g., notify max once every 30 seconds per app)
+            if (packageName != null && MainActivity.limitedPackages.contains(packageName)) {
+                val lastNotify = lastUsageNotificationTime[packageName] ?: 0L
+                val now = System.currentTimeMillis()
+                
+                if (now - lastNotify > 30000) { // 30 seconds throttle
+                    try {
+                        MainActivity.instance?.notifyAppLaunched(packageName)
+                        lastUsageNotificationTime[packageName] = now
+                        android.util.Log.d("AccessibilityService", "📊 Detected usage of limited app: $packageName")
+                    } catch (e: Exception) {
+                        android.util.Log.e("AccessibilityService", "Failed to notify app launched: ${e.message}")
+                    }
+                }
+            }
+
             // 2. App Blocking Logic (Only on STATE_CHANGED to avoid loops on content change)
             if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
                 if (packageName != null && 
@@ -309,17 +330,6 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     
                     // Block immediately without delay
                     blockAppSafely(packageName)
-                }
-                
-                // 3. Usage Limiter Tracking
-                if (packageName != null && MainActivity.limitedPackages.contains(packageName)) {
-                    // App launched - get MainActivity instance and notify
-                    try {
-                        val mainActivity = applicationContext as? MainActivity
-                        mainActivity?.notifyAppLaunched(packageName)
-                    } catch (e: Exception) {
-                        android.util.Log.e("AccessibilityService", "Failed to notify app launched: ${e.message}")
-                    }
                 }
             }
         }

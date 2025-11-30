@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import '../models/app_usage_limit.dart';
@@ -11,20 +12,62 @@ class AppUsageLimiterService {
   AppUsageLimiterService._internal();
 
   late Box<AppUsageLimit> _limitsBox;
+  late Box<Map> _durationsBox;
   final Map<String, Timer> _usageTimers = {};
   final Map<String, DateTime> _appStartTimes = {};
   bool _isInitialized = false;
 
+  static const platform = MethodChannel('app_blocking');
+  static const String _limitsBoxName = 'app_usage_limits';
+  static const String _durationsBoxName = 'usage_limit_durations';
+
   Future<void> initialize() async {
     if (_isInitialized) return;
     
-    _limitsBox = await Hive.openBox<AppUsageLimit>('app_usage_limits');
+    // Ensure adapter is registered
+    if (!Hive.isAdapterRegistered(20)) {
+      Hive.registerAdapter(AppUsageLimitAdapter());
+    }
+
+    // Open limits box
+    if (!Hive.isBoxOpen(_limitsBoxName)) {
+      _limitsBox = await Hive.openBox<AppUsageLimit>(_limitsBoxName);
+    } else {
+      _limitsBox = Hive.box<AppUsageLimit>(_limitsBoxName);
+    }
+    
+    // Open durations box
+    if (!Hive.isBoxOpen(_durationsBoxName)) {
+      _durationsBox = await Hive.openBox<Map>(_durationsBoxName);
+    } else {
+      _durationsBox = Hive.box<Map>(_durationsBoxName);
+    }
+
     await _performDailyReset();
+    
+    // Setup MethodChannel listener
+    platform.setMethodCallHandler((call) async {
+      if (call.method == 'onLimitedAppLaunched') {
+        final packageName = call.arguments['packageName'] as String?;
+        if (packageName != null) {
+          debugPrint('🚀 Native reported limited app launch: $packageName');
+          startAppUsage(packageName);
+        }
+      }
+    });
+
+    // Sync all active limits to native on startup
+    for (var limit in _limitsBox.values) {
+      if (limit.isActive && !limit.isBlocked) {
+        await _notifyNativeLimitAdded(limit.packageName);
+      }
+    }
+
     _isInitialized = true;
   }
 
   // Set a usage limit for an app
-  Future<void> setAppLimit(String packageName, String appName, int limitMinutes) async {
+  Future<void> setAppLimit(String packageName, String appName, int limitMinutes, {int durationDays = -1}) async {
     await initialize();
     
     final now = DateTime.now();
@@ -58,20 +101,21 @@ class AppUsageLimiterService {
       await _limitsBox.add(newLimit);
     }
     
+    // Store duration info
+    if (durationDays != -1) {
+      await _durationsBox.put(packageName, {
+        'durationDays': durationDays,
+        'startDate': now.toIso8601String(),
+      });
+    } else {
+      // If indefinite, remove any existing duration info
+      await _durationsBox.delete(packageName);
+    }
+    
     // Notify native side that this app now has a limit (for AccessibilityService tracking)
     await _notifyNativeLimitAdded(packageName);
   }
   
-  Future<void> _notifyNativeLimitAdded(String packageName) async {
-    try {
-      // This would call a native method to add the package to limited apps
-      // We'll need to add this method to MainActivity
-      debugPrint('📊 Notified native: Limit added for $packageName');
-    } catch (e) {
-      debugPrint('Error notifying native about limit: $e');
-    }
-  }
-
   // Get usage limit for an app
   Future<AppUsageLimit?> getAppLimit(String packageName) async {
     await initialize();
@@ -187,15 +231,57 @@ class AppUsageLimiterService {
     }
   }
 
+  Future<void> _notifyNativeLimitAdded(String packageName) async {
+    try {
+      await platform.invokeMethod('addLimitedApp', {'packageName': packageName});
+      debugPrint('📊 Notified native: Limit added for $packageName');
+    } catch (e) {
+      debugPrint('Error notifying native about limit: $e');
+    }
+  }
+
+  Future<void> _notifyNativeLimitRemoved(String packageName) async {
+    try {
+      await platform.invokeMethod('removeLimitedApp', {'packageName': packageName});
+      debugPrint('📊 Notified native: Limit removed for $packageName');
+    } catch (e) {
+      debugPrint('Error notifying native about limit removal: $e');
+    }
+  }
+
   // Perform daily reset - called at app startup
   Future<void> _performDailyReset() async {
     final now = DateTime.now();
     final limitsToUpdate = <AppUsageLimit>[];
+    final limitsToRemove = <AppUsageLimit>[];
     
     for (var limit in _limitsBox.values) {
-      if (limit.shouldResetToday) {
+      // Check for expiration
+      final durationInfo = _durationsBox.get(limit.packageName);
+      bool isExpired = false;
+      
+      if (durationInfo != null) {
+        final durationDays = durationInfo['durationDays'] as int;
+        final startDateStr = durationInfo['startDate'] as String;
+        final startDate = DateTime.parse(startDateStr);
+        final expiryDate = startDate.add(Duration(days: durationDays));
+        
+        if (now.isAfter(expiryDate)) {
+          isExpired = true;
+        }
+      }
+      
+      if (isExpired) {
+        limitsToRemove.add(limit);
+      } else if (limit.shouldResetToday) {
         limitsToUpdate.add(limit);
       }
+    }
+    
+    // Remove expired limits
+    for (var limit in limitsToRemove) {
+      await removeAppLimit(limit.packageName);
+      debugPrint('Limit expired for ${limit.packageName}');
     }
     
     for (var limit in limitsToUpdate) {
@@ -244,6 +330,11 @@ class AppUsageLimiterService {
         await limit.delete();
       }
       
+      // Remove duration info
+      if (_durationsBox.containsKey(packageName)) {
+        await _durationsBox.delete(packageName);
+      }
+      
       final deactivatedLimit = limit.copyWith(
         isActive: false,
         updatedAt: DateTime.now(),
@@ -253,6 +344,9 @@ class AppUsageLimiterService {
       
       // Stop any active tracking
       await stopAppUsage(packageName);
+      
+      // Notify native side to stop watching
+      await _notifyNativeLimitRemoved(packageName);
       
       // Unblock if currently blocked
       if (limit.isBlocked) {

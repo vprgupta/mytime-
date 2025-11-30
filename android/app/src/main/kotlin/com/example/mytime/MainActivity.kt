@@ -30,6 +30,7 @@ class MainActivity : FlutterActivity() {
     private var previousForegroundApp: String? = null
     
     companion object {
+        var instance: MainActivity? = null
         var blockedPackages = mutableSetOf<String>()
         var blockedAppNames = mutableSetOf<String>()
         var limitedPackages = mutableSetOf<String>()  // Apps with usage limits
@@ -191,6 +192,22 @@ class MainActivity : FlutterActivity() {
                             AppBlockingAccessibilityService.isBlockingActive = false
                         }
                         android.util.Log.d("MainActivity", "🧹 Force cleared blocked app: $packageName")
+                    }
+                    result.success(null)
+                }
+                "addLimitedApp" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName != null) {
+                        limitedPackages.add(packageName)
+                        android.util.Log.d("MainActivity", "⏱️ Added limited app: $packageName")
+                    }
+                    result.success(null)
+                }
+                "removeLimitedApp" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName != null) {
+                        limitedPackages.remove(packageName)
+                        android.util.Log.d("MainActivity", "⏱️ Removed limited app: $packageName")
                     }
                     result.success(null)
                 }
@@ -636,7 +653,7 @@ class MainActivity : FlutterActivity() {
     fun addLimitedApp(packageName: String) {
         limitedApps.add(packageName)
         limitedPackages.add(packageName)  // Also add to companion for AccessibilityService
-        android.util.Log.d("MainActivity", "📊 Added limited app: $packageName")
+        android.util.Log.d("MainActivity", "📊 Added limited app: $packageName. Current list: $limitedPackages")
     }
     
     fun removeLimitedApp(packageName: String) {
@@ -850,6 +867,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
+        instance = this
         val filter = android.content.IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
             addAction(Intent.ACTION_PACKAGE_REPLACED)
@@ -860,6 +878,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        instance = null
         unregisterReceiver(packageReceiver)
     }
 }

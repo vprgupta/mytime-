@@ -4,7 +4,9 @@ import 'package:installed_apps/app_info.dart';
 import '../models/app_usage_limit.dart';
 import '../services/app_usage_limiter_service.dart';
 import '../services/installed_apps_service.dart';
-import '../../../core/widgets/app_card.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/modern_card.dart';
+import '../../../core/widgets/gradient_button.dart';
 
 class AppUsageLimiterScreen extends StatefulWidget {
   const AppUsageLimiterScreen({super.key});
@@ -33,27 +35,36 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
       _limits = _limiterService.getAllLimits();
       _availableApps = await _appsService.getInstalledApps();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading data: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading data: $e')),
+        );
+      }
     }
-    setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: const Text('App Usage Limits'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('App Usage Limits', style: TextStyle(color: AppColors.textPrimary)),
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
             onPressed: _loadData,
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
           : Column(
               children: [
                 _buildStatsSection(),
@@ -62,7 +73,8 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddLimitDialog,
-        child: const Icon(Icons.add),
+        backgroundColor: AppColors.primaryBlue,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -76,22 +88,22 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
       child: Row(
         children: [
           Expanded(
-            child: AppCard(
+            child: ModernCard(
               child: Column(
                 children: [
-                  Text('$activeLimits', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  const Text('Active Limits'),
+                  Text('$activeLimits', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const Text('Active Limits', style: TextStyle(color: AppColors.textSecondary)),
                 ],
               ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: AppCard(
+            child: ModernCard(
               child: Column(
                 children: [
-                  Text('$blockedApps', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red)),
-                  const Text('Blocked Today'),
+                  Text('$blockedApps', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.dangerRed)),
+                  const Text('Blocked Today', style: TextStyle(color: AppColors.textSecondary)),
                 ],
               ),
             ),
@@ -103,7 +115,7 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
 
   Widget _buildLimitsList() {
     if (_limits.isEmpty) {
-      return const Center(child: Text('No usage limits set'));
+      return const Center(child: Text('No usage limits set', style: TextStyle(color: AppColors.textSecondary)));
     }
 
     return ListView.builder(
@@ -115,11 +127,11 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
 
   Widget _buildLimitCard(AppUsageLimit limit) {
     final progress = limit.usedMinutesToday / limit.currentLimitMinutes;
-    final progressColor = limit.isBlocked ? Colors.red : (progress > 0.8 ? Colors.orange : Colors.green);
+    final progressColor = limit.isBlocked ? AppColors.dangerRed : (progress > 0.8 ? AppColors.warningOrange : AppColors.successGreen);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: AppCard(
+      child: ModernCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -129,32 +141,37 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(limit.appName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      Text('${limit.usedMinutesToday}/${limit.currentLimitMinutes} min'),
+                      Text(limit.appName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 16)),
+                      const SizedBox(height: 4),
+                      Text('${limit.usedMinutesToday}/${limit.currentLimitMinutes} min', style: const TextStyle(color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
                 if (limit.isBlocked)
-                  const Icon(Icons.block, color: Colors.red)
+                  const Icon(Icons.block, color: AppColors.dangerRed)
                 else
                   IconButton(
-                    icon: const Icon(Icons.delete),
+                    icon: const Icon(Icons.delete, color: AppColors.textSecondary),
                     onPressed: () => _removeLimit(limit),
                   ),
               ],
             ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              backgroundColor: Colors.grey[300],
-              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                backgroundColor: AppColors.surfaceDark,
+                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                minHeight: 6,
+              ),
             ),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Day ${limit.consecutiveDays + 1}'),
-                Text('${limit.remainingMinutes} min left'),
+                Text('Day ${limit.consecutiveDays + 1}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                Text('${limit.remainingMinutes} min left', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               ],
             ),
           ],
@@ -168,8 +185,8 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
       context: context,
       builder: (context) => _AddLimitDialog(
         availableApps: _availableApps,
-        onLimitAdded: (packageName, appName, minutes) async {
-          await _limiterService.setAppLimit(packageName, appName, minutes);
+        onLimitAdded: (packageName, appName, minutes, durationDays) async {
+          await _limiterService.setAppLimit(packageName, appName, minutes, durationDays: durationDays);
           _loadData();
         },
       ),
@@ -180,11 +197,12 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove Limit'),
-        content: Text('Remove usage limit for ${limit.appName}?'),
+        backgroundColor: AppColors.cardDark,
+        title: const Text('Remove Limit', style: TextStyle(color: AppColors.textPrimary)),
+        content: Text('Remove usage limit for ${limit.appName}?', style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remove')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remove', style: TextStyle(color: AppColors.dangerRed))),
         ],
       ),
     );
@@ -198,7 +216,7 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
 
 class _AddLimitDialog extends StatefulWidget {
   final List<AppInfo> availableApps;
-  final Function(String, String, int) onLimitAdded;
+  final Function(String, String, int, int) onLimitAdded;
 
   const _AddLimitDialog({required this.availableApps, required this.onLimitAdded});
 
@@ -209,6 +227,7 @@ class _AddLimitDialog extends StatefulWidget {
 class _AddLimitDialogState extends State<_AddLimitDialog> {
   String _searchQuery = '';
   int _limitMinutes = 60;
+  int _durationDays = -1; // -1 for indefinite
   final InstalledAppsService _appsService = InstalledAppsService();
 
   @override
@@ -219,22 +238,32 @@ class _AddLimitDialogState extends State<_AddLimitDialog> {
     }).toList();
 
     return Dialog(
+      backgroundColor: AppColors.cardDark,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         padding: const EdgeInsets.all(16),
-        height: 500, // Fixed height for the list
+        height: 500,
         child: Column(
           children: [
             const Text(
               'Add Usage Limit',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 16),
             TextField(
-              decoration: const InputDecoration(
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: InputDecoration(
                 labelText: 'Search Apps',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: AppColors.textSecondary),
+                prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.border.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: AppColors.primaryBlue),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onChanged: (val) => setState(() => _searchQuery = val),
             ),
@@ -251,10 +280,10 @@ class _AddLimitDialogState extends State<_AddLimitDialog> {
                         if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
                           return Image.memory(snapshot.data!, width: 40, height: 40);
                         }
-                        return const Icon(Icons.android, size: 40);
+                        return const Icon(Icons.android, size: 40, color: AppColors.textSecondary);
                       },
                     ),
-                    title: Text(app.name ?? app.packageName),
+                    title: Text(app.name ?? app.packageName, style: const TextStyle(color: AppColors.textPrimary)),
                     onTap: () => _showLimitSetting(app),
                   );
                 },
@@ -269,30 +298,66 @@ class _AddLimitDialogState extends State<_AddLimitDialog> {
   void _showLimitSetting(AppInfo app) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Set Limit for ${app.name}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              decoration: const InputDecoration(labelText: 'Daily Limit (minutes)'),
-              keyboardType: TextInputType.number,
-              initialValue: _limitMinutes.toString(),
-              onChanged: (value) => _limitMinutes = int.tryParse(value) ?? 60,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: AppColors.cardDark,
+            title: Text('Set Limit for ${app.name}', style: const TextStyle(color: AppColors.textPrimary)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    labelText: 'Daily Limit (minutes)',
+                    labelStyle: const TextStyle(color: AppColors.textSecondary),
+                    enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.textSecondary)),
+                    focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primaryBlue)),
+                  ),
+                  keyboardType: TextInputType.number,
+                  initialValue: _limitMinutes.toString(),
+                  onChanged: (value) => _limitMinutes = int.tryParse(value) ?? 60,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<int>(
+                  value: _durationDays,
+                  dropdownColor: AppColors.cardDark,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    labelText: 'Duration',
+                    labelStyle: const TextStyle(color: AppColors.textSecondary),
+                    enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.textSecondary)),
+                    focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primaryBlue)),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: -1, child: Text('Indefinite')),
+                    DropdownMenuItem(value: 1, child: Text('1 Day')),
+                    DropdownMenuItem(value: 3, child: Text('3 Days')),
+                    DropdownMenuItem(value: 7, child: Text('7 Days')),
+                    DropdownMenuItem(value: 30, child: Text('30 Days')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _durationDays = value);
+                    }
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              widget.onLimitAdded(app.packageName, app.name ?? app.packageName, _limitMinutes);
-              Navigator.pop(context); // Close limit dialog
-              Navigator.pop(context); // Close app list dialog
-            },
-            child: const Text('Set Limit'),
-          ),
-        ],
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary))),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue),
+                onPressed: () {
+                  widget.onLimitAdded(app.packageName, app.name ?? app.packageName, _limitMinutes, _durationDays);
+                  Navigator.pop(context); // Close limit dialog
+                  Navigator.pop(context); // Close app list dialog
+                },
+                child: const Text('Set Limit', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        }
       ),
     );
   }

@@ -39,6 +39,16 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     }
     
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (event == null) return
+
+        // OPTIMIZATION: Only process relevant event types
+        // Ignore high-frequency events like SCROLL, HOVER, etc.
+        val eventType = event.eventType
+        if (eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && 
+            eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            return
+        }
+
         // Prevent excessive event processing that can cause kernel freeze
         val currentTime = System.currentTimeMillis()
         
@@ -95,9 +105,24 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         val packageName = event?.packageName?.toString()
         val className = event?.className?.toString()
         
-        // STICKY PROTECTION: If we're in sticky protection mode, aggressively block any monitored package
+        if (packageName == null) return
+
+        // OPTIMIZATION: Early exit if nothing is blocked and no global lock
+        // We need to check cache first
         val currentTime = System.currentTimeMillis()
-        if (stickyProtectionUntil > currentTime && packageName != null && monitoredPackages.contains(packageName)) {
+        if (currentTime - lastCacheUpdateTime > CACHE_REFRESH_INTERVAL) {
+            val prefs = applicationContext.getSharedPreferences("MyTaskPrefs", android.content.Context.MODE_PRIVATE)
+            cachedLockEndTime = prefs.getLong("uninstall_lock_end_time", 0L)
+            lastCacheUpdateTime = currentTime
+        }
+        val isGlobalLockActive = cachedLockEndTime > currentTime
+
+        if (MainActivity.blockedPackages.isEmpty() && !isGlobalLockActive && stickyProtectionUntil < currentTime) {
+            return
+        }
+
+        // STICKY PROTECTION: If we're in sticky protection mode, aggressively block any monitored package
+        if (stickyProtectionUntil > currentTime && monitoredPackages.contains(packageName)) {
             performGlobalAction(GLOBAL_ACTION_BACK)
             performGlobalAction(GLOBAL_ACTION_HOME)
             performGlobalAction(GLOBAL_ACTION_BACK)
@@ -109,17 +134,8 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || 
             eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             
-            // 0. Uninstall Protection Logic
-            // Optimization: Only read from SharedPreferences periodically
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastCacheUpdateTime > CACHE_REFRESH_INTERVAL) {
-                val prefs = applicationContext.getSharedPreferences("MyTaskPrefs", android.content.Context.MODE_PRIVATE)
-                cachedLockEndTime = prefs.getLong("uninstall_lock_end_time", 0L)
-                lastCacheUpdateTime = currentTime
-            }
+            // 0. Uninstall Protection Logic (Global Lock)
             
-            val isGlobalLockActive = cachedLockEndTime > currentTime
-
             // 0.1 Global Lock Logic (Protects MyTask and Admin)
             if (isGlobalLockActive) {
                 // Whitelist: Allow PIN/Password/Lock screens

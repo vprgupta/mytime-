@@ -309,11 +309,24 @@ class MainActivity : FlutterActivity() {
     private fun startRealTimeMonitoring() {
         monitoringRunnable = object : Runnable {
             override fun run() {
-                try {
-                    checkAndBlockApps()
-                } catch (e: Exception) {
-                    android.util.Log.e("MainActivity", "Error in monitoring: ${e.message}")
+                // OPTIMIZATION: Adaptive Polling
+                // If no apps are blocked, stop the monitoring loop to save battery
+                if (blockedApps.isEmpty()) {
+                    isMonitoring = false
+                    android.util.Log.d("MainActivity", "🛑 No blocked apps, stopping monitoring loop")
+                    return
                 }
+
+                // OPTIMIZATION: Background Execution
+                // Move usage stats query to background thread to prevent main thread jank
+                Thread {
+                    try {
+                        checkAndBlockApps()
+                    } catch (e: Exception) {
+                        android.util.Log.e("MainActivity", "Error in monitoring: ${e.message}")
+                    }
+                }.start()
+                
                 if (isMonitoring) {
                     handler.postDelayed(this, 5000) // Check every 5 seconds (battery optimized)
                 }

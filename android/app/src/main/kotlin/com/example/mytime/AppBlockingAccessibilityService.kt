@@ -122,13 +122,28 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
             // 0.1 Global Lock Logic (Protects MyTask and Admin)
             if (isGlobalLockActive) {
+                // Whitelist: Allow PIN/Password/Lock screens
+                if (className != null && (
+                    className.contains("Password") || 
+                    className.contains("Pin") || 
+                    className.contains("Credential") || 
+                    className.contains("Pattern") || 
+                    className.contains("Lock") ||
+                    className.contains("Biometric")
+                )) {
+                    // Do not block authentication screens
+                    return
+                }
+
                 if (packageName == "com.android.settings") {
                     val text = event.text.toString().lowercase()
+                    
+                    // Only block specific dangerous keywords
+                    // REMOVED: "delete" and "remove" which caused false positives with backspace/other settings
                     if (text.contains("admin") || 
                         text.contains("mytask") || 
-                        text.contains("uninstall") ||
-                        text.contains("remove") ||
-                        text.contains("delete")) {
+                        text.contains("mytime") ||
+                        text.contains("uninstall")) {
                         
                         performGlobalAction(GLOBAL_ACTION_BACK)
                         performGlobalAction(GLOBAL_ACTION_HOME)

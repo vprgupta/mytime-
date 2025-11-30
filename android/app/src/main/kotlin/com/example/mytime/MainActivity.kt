@@ -113,12 +113,6 @@ class MainActivity : FlutterActivity() {
                         // Always try to block (will check internally if admin enabled)
                         setUninstallBlocked(packageName, true)
                         
-                        // If Device Admin not enabled, prompt user to enable it
-                        if (!isDeviceAdminEnabled()) {
-                            android.util.Log.w("MainActivity", "⚠️ Device Admin not enabled - requesting now")
-                            enableDeviceAdmin()
-                        }
-                        
                         startRealTimeMonitoring()
                         android.util.Log.d("MainActivity", "Added $packageName ($appName) to blocked list, ends at $endTime")
                     }
@@ -252,8 +246,9 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 "getUninstallLock" -> {
-                    val prefs = getSharedPreferences("MyTaskPrefs", Context.MODE_PRIVATE)
-                    val timestamp = prefs.getLong("uninstall_lock_end_time", 0L)
+                    // Check and clear if expired before returning status
+                    commitmentManager.clearIfExpired()
+                    val timestamp = commitmentManager.getCommitmentEndTime()
                     result.success(timestamp)
                 }
                 "startCommitmentMode" -> {
@@ -261,6 +256,8 @@ class MainActivity : FlutterActivity() {
                     val success = commitmentManager.startCommitment(hours)
                     if (success) {
                         startCommitmentMonitoring()
+                        // Enforce uninstall protection via Device Admin
+                        setUninstallBlocked(packageName, true)
                     }
                     result.success(success)
                 }

@@ -17,7 +17,6 @@ class _PermissionSetupScreenV2State extends State<PermissionSetupScreenV2> {
   bool _usageAccess = false;
   bool _accessibility = false;
   bool _overlay = false;
-  bool _deviceAdmin = false;
 
   @override
   void initState() {
@@ -33,7 +32,6 @@ class _PermissionSetupScreenV2State extends State<PermissionSetupScreenV2> {
           _usageAccess = result['usageStats'] == true;
           _accessibility = result['accessibility'] == true;
           _overlay = result['overlay'] == true;
-          _deviceAdmin = result['deviceAdmin'] == true;
         });
       }
     } catch (e) {
@@ -96,18 +94,7 @@ class _PermissionSetupScreenV2State extends State<PermissionSetupScreenV2> {
             },
           ),
           
-          const SizedBox(height: 16),
-          
-          _buildPermissionCard(
-            title: 'Device Administrator',
-            description: 'Required to prevent uninstallation of blocked apps.',
-            isGranted: _deviceAdmin,
-            onTap: () async {
-              await _channel.invokeMethod('enableDeviceAdmin');
-              await Future.delayed(const Duration(seconds: 1));
-              _checkPermissions();
-            },
-          ),
+
           
           const SizedBox(height: 32),
           
@@ -117,18 +104,7 @@ class _PermissionSetupScreenV2State extends State<PermissionSetupScreenV2> {
               onPressed: () => Navigator.pop(context),
             ),
             
-          if (!_deviceAdmin && _usageAccess && _accessibility && _overlay)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Text(
-                '⚠️ Device Administrator is optional but recommended for preventing uninstall of blocked apps.',
-                style: const TextStyle(
-                  color: AppColors.warningOrange,
-                  fontSize: 12,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
+
         ],
       ),
     );

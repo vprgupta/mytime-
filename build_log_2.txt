@@ -1,0 +1,23 @@
+Launching lib\main.dart on CPH2707 in debug mode...
+Running Gradle task 'assembleDebug'...                          
+lib/features/app_blocking_new/screens/app_blocking_screen_v2.dart:387:57: Error: Not a constant expression.
+                MaterialPageRoute(builder: (_) => const CommitmentSetupScreen()),
+                                                        ^^^^^^^^^^^^^^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command 'C:\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 16s
+Running Gradle task 'assembleDebug'...                             17.6s
+Error: Gradle task assembleDebug failed with exit code 1

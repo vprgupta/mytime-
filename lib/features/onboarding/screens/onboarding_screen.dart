@@ -59,24 +59,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Skip button
-            if (_currentPage < 4)
-              Align(
-                alignment: Alignment.topRight,
-                child: TextButton(
-                  onPressed: () => _pageController.animateToPage(
-                    4,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  ),
-                  child: const Text(
-                    'Skip',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
-                ),
-              )
-            else
-              const SizedBox(height: 48),
+            // Top Bar with Skip
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Back Button (Hidden on first page)
+                  if (_currentPage > 0)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textSecondary),
+                      onPressed: () {
+                        _pageController.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                    )
+                  else
+                    const SizedBox(width: 48), // Spacer to keep layout balanced
+
+                  // Skip Button (Hidden on last page)
+                  if (_currentPage < 4)
+                    TextButton(
+                      onPressed: () => _pageController.animateToPage(
+                        4,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      ),
+                      child: const Text(
+                        'Skip',
+                        style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                      ),
+                    )
+                  else
+                    const SizedBox(width: 64), // Spacer
+                ],
+              ),
+            ),
 
             Expanded(
               child: PageView(
@@ -109,13 +129,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     title: 'Your Data is Safe',
                     description: 'We respect your privacy. All blocking logic runs locally on your device. We do not sell or share your personal usage data.',
                     color: AppColors.successGreen,
+                    extraContent: Container(
+                      margin: const EdgeInsets.only(top: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.successGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.verified_user_rounded, size: 16, color: AppColors.successGreen),
+                          SizedBox(width: 8),
+                          Text(
+                            '100% Offline & Private',
+                            style: TextStyle(
+                              color: AppColors.successGreen,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   _buildPermissionSlide(),
                 ],
               ),
             ),
 
-            // Indicators and Navigation
+            // Bottom Navigation Area
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
@@ -172,6 +216,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     required String title,
     required String description,
     required Color color,
+    Widget? extraContent,
   }) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -206,6 +251,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               height: 1.5,
             ),
           ),
+          if (extraContent != null) extraContent,
         ],
       ),
     );

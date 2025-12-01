@@ -1,6 +1,7 @@
 package com.example.mytime
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Context
 import android.content.Intent
 import android.view.accessibility.AccessibilityEvent
 import android.os.Handler
@@ -11,12 +12,9 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
     private val handler = Handler(Looper.getMainLooper())
     private val isProcessing = AtomicBoolean(false)
-    private val lastUsageNotificationTime = mutableMapOf<String, Long>()
     private var currentLimitedApp: String? = null
     
     // Usage Limiter Logic
-    private val usageLimits = mutableMapOf<String, Int>() // Package -> Limit in minutes
-    private val usageToday = mutableMapOf<String, Int>()  // Package -> Used minutes
     private var usageTrackingStartTime = 0L
     private val usageUpdateRunnable = object : Runnable {
         override fun run() {
@@ -51,14 +49,20 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         
         @JvmStatic
         fun updateAppLimit(packageName: String, limitMinutes: Int, usedMinutes: Int) {
-            instance?.let { service ->
-                service.usageLimits[packageName] = limitMinutes
-                service.usageToday[packageName] = usedMinutes
-                android.util.Log.d("AccessibilityService", "Updated limit for $packageName: $usedMinutes/$limitMinutes")
-                
-                // Immediate check
-                if (usedMinutes >= limitMinutes) {
-                    addBlockedApp(packageName)
+            // Update shared state in MainActivity
+            MainActivity.usageLimits[packageName] = limitMinutes
+            MainActivity.usageToday[packageName] = usedMinutes
+            MainActivity.limitedPackages.add(packageName)
+            
+            android.util.Log.d("AccessibilityService", "✅ Updated limit for $packageName: $usedMinutes/$limitMinutes")
+            
+            // Persist immediately
+            instance?.saveUsageStats(packageName)
+            
+            // Immediate check
+            if (usedMinutes >= limitMinutes) {
+                addBlockedApp(packageName)
+                instance?.let { service ->
                     if (service.currentLimitedApp == packageName) {
                         service.triggerGlobalActionHome()
                     }
@@ -69,14 +73,67 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         var instance: AppBlockingAccessibilityService? = null
     }
     
+    private fun saveUsageStats(packageName: String) {
+        try {
+            val prefs = applicationContext.getSharedPreferences("UsageLimits", Context.MODE_PRIVATE)
+            val editor = prefs.edit()
+            
+            val limit = MainActivity.usageLimits[packageName] ?: 0
+            val used = MainActivity.usageToday[packageName] ?: 0
+            val accumulated = MainActivity.accumulatedUsage[packageName] ?: 0L
+            
+            editor.putInt("limit_$packageName", limit)
+            editor.putInt("used_$packageName", used)
+            editor.putLong("acc_$packageName", accumulated)
+            editor.apply()
+            
+            android.util.Log.v("AccessibilityService", "💾 Saved stats for $packageName: $used/$limit (Acc: $accumulated)")
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to save usage stats: ${e.message}")
+        }
+    }
+    
+    private fun restoreUsageStats() {
+        try {
+            val prefs = applicationContext.getSharedPreferences("UsageLimits", Context.MODE_PRIVATE)
+            val all = prefs.all
+            
+            var restoredCount = 0
+            all.keys.forEach { key ->
+                if (key.startsWith("limit_")) {
+                    val packageName = key.removePrefix("limit_")
+                    val limit = prefs.getInt(key, 0)
+                    val used = prefs.getInt("used_$packageName", 0)
+                    val accumulated = prefs.getLong("acc_$packageName", 0L)
+                    
+                    MainActivity.usageLimits[packageName] = limit
+                    MainActivity.usageToday[packageName] = used
+                    MainActivity.accumulatedUsage[packageName] = accumulated
+                    MainActivity.limitedPackages.add(packageName)
+                    
+                    restoredCount++
+                }
+            }
+            
+            if (restoredCount > 0) {
+                android.util.Log.d("AccessibilityService", "♻️ Restored usage stats for $restoredCount apps")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to restore usage stats: ${e.message}")
+        }
+    }
+    
     private fun incrementUsage(packageName: String) {
-        val currentUsage = usageToday[packageName] ?: 0
+        val currentUsage = MainActivity.usageToday[packageName] ?: 0
         val newUsage = currentUsage + 1
-        usageToday[packageName] = newUsage
+        MainActivity.usageToday[packageName] = newUsage
         
-        val limit = usageLimits[packageName] ?: Int.MAX_VALUE
+        val limit = MainActivity.usageLimits[packageName] ?: Int.MAX_VALUE
         
         android.util.Log.d("AccessibilityService", "⏳ Usage for $packageName: $newUsage/$limit minutes")
+        
+        // Save state
+        saveUsageStats(packageName)
         
         // Notify Flutter to keep UI in sync
         try {
@@ -146,6 +203,46 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             // 3. Usage Limiter Tracking
             if (currentLimitedApp != null && currentLimitedApp != packageName) {
                 // App switched away from limited app
+                
+                // Calculate partial usage before stopping
+                val now = System.currentTimeMillis()
+                val elapsedMillis = now - usageTrackingStartTime
+                if (elapsedMillis > 0) {
+                    val accumulated = (MainActivity.accumulatedUsage[currentLimitedApp!!] ?: 0L) + elapsedMillis
+                    MainActivity.accumulatedUsage[currentLimitedApp!!] = accumulated
+                    
+                    // Save accumulated state
+                    saveUsageStats(currentLimitedApp!!)
+                    
+                    // If accumulated > 1 minute, increment usage
+                    if (accumulated >= 60000) {
+                        val minutesToAdd = (accumulated / 60000).toInt()
+                        val remainingMillis = accumulated % 60000
+                        
+                        // Add minutes
+                        val currentUsage = MainActivity.usageToday[currentLimitedApp!!] ?: 0
+                        val newUsage = currentUsage + minutesToAdd
+                        MainActivity.usageToday[currentLimitedApp!!] = newUsage
+                        MainActivity.accumulatedUsage[currentLimitedApp!!] = remainingMillis
+                        
+                        android.util.Log.d("AccessibilityService", "⏱️ Accumulated usage for ${currentLimitedApp!!}: +$minutesToAdd min (Total: $newUsage)")
+                        
+                        // Save updated state
+                        saveUsageStats(currentLimitedApp!!)
+                        
+                        // Notify Flutter
+                        try {
+                            MainActivity.instance?.updateNativeUsage(currentLimitedApp!!, newUsage)
+                        } catch (e: Exception) {}
+                        
+                        // Check limit
+                        val limit = MainActivity.usageLimits[currentLimitedApp!!] ?: Int.MAX_VALUE
+                        if (newUsage >= limit) {
+                            addBlockedApp(currentLimitedApp!!)
+                        }
+                    }
+                }
+                
                 handler.removeCallbacks(usageUpdateRunnable)
                 try {
                     MainActivity.instance?.notifyAppClosed(currentLimitedApp!!)
@@ -179,13 +276,49 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     }
     
     fun triggerGlobalActionHome() {
-        performGlobalAction(GLOBAL_ACTION_HOME)
+        // 1. Show overlay immediately to visually block interaction
+        showBlockedOverlay()
+        
+        // 2. Wait a moment so user sees the message, then kick to home
+        // Using a shorter delay (500ms) to be responsive but visible
+        handler.postDelayed({
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            
+            // 3. Hide overlay shortly after kicking to home
+            handler.postDelayed({
+                hideBlockedOverlay()
+            }, 1000)
+        }, 500)
+    }
+    
+    private fun showBlockedOverlay() {
+        try {
+            if (android.provider.Settings.canDrawOverlays(this)) {
+                val intent = Intent(this, BlockedAppOverlayService::class.java)
+                intent.action = BlockedAppOverlayService.ACTION_SHOW
+                intent.putExtra("appName", "Blocked App") 
+                startService(intent)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to start overlay: ${e.message}")
+        }
+    }
+
+    private fun hideBlockedOverlay() {
+        try {
+            val intent = Intent(this, BlockedAppOverlayService::class.java)
+            intent.action = BlockedAppOverlayService.ACTION_HIDE
+            startService(intent)
+        } catch (e: Exception) {
+            // Ignore
+        }
     }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
         restoreBlockedApps()
+        restoreUsageStats() // Restore usage limits and progress
         android.util.Log.d("AccessibilityService", "Service connected safely")
     }
     

@@ -35,6 +35,11 @@ class MainActivity : FlutterActivity() {
         var blockedAppNames = mutableSetOf<String>()
         var limitedPackages = mutableSetOf<String>()  // Apps with usage limits
         var isCommitmentActive = false
+        
+        // Usage Tracking State (Shared)
+        var usageLimits = mutableMapOf<String, Int>()
+        var usageToday = mutableMapOf<String, Int>()
+        var accumulatedUsage = mutableMapOf<String, Long>() // For tracking partial minutes
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -228,16 +233,20 @@ class MainActivity : FlutterActivity() {
 
                 "setAppLimit" -> {
                     val packageName = call.argument<String>("packageName")
-                    val limitMinutes = call.argument<Int>("limitMinutes") ?: 0
-                    val usedMinutes = call.argument<Int>("usedMinutes") ?: 0
+                    val limit = call.argument<Int>("limitMinutes")
+                    val used = call.argument<Int>("usedMinutes")
                     
-                    if (packageName != null) {
+                    if (packageName != null && limit != null && used != null) {
                         limitedPackages.add(packageName)
-                        AppBlockingAccessibilityService.updateAppLimit(packageName, limitMinutes, usedMinutes)
+                        AppBlockingAccessibilityService.updateAppLimit(packageName, limit, used)
+                        android.util.Log.d("MainActivity", "📥 setAppLimit: $packageName, Limit: $limit, Used: $used")
+                        android.util.Log.d("MainActivity", "📋 Current limitedPackages: $limitedPackages")
+                        result.success(true)
+                    } else {
+                        android.util.Log.e("MainActivity", "⚠️ setAppLimit failed: Missing args (pkg=$packageName, limit=$limit, used=$used)")
+                        result.success(false)
                     }
-                    result.success(null)
                 }
-
                 "getAppName" -> {
                     val packageName = call.argument<String>("packageName")
                     val appName = getAppName(packageName ?: "")

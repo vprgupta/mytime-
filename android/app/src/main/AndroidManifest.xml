@@ -83,6 +83,17 @@
             android:enabled="true"
             android:exported="false" />
             
+        <!-- Blocked App Overlay Service -->
+        <service
+            android:name=".BlockedAppOverlayService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Overlay for blocked apps" />
+        </service>
+            
         <!-- Commitment Monitoring Service (Foreground) -->
         <service
             android:name=".CommitmentMonitoringService"

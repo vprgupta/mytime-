@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.content.Intent
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import android.os.Handler
 import android.os.Looper
 import java.util.concurrent.atomic.AtomicBoolean
@@ -203,21 +204,40 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     android.util.Log.d("AccessibilityService", "🔍 Event: pkg=$packageName, text=$combinedText")
                 
                     if (isSettings) {
+                        // 0. WHITELIST: Allow PIN/Password/Biometric screens
+                        // This prevents false positives when accessing Hidden Folders, Private Safe, etc.
+                        if (combinedText.contains("enter pin") || combinedText.contains("enter password") ||
+                            combinedText.contains("unlock") || combinedText.contains("fingerprint") ||
+                            combinedText.contains("face id") || combinedText.contains("confirm pin") ||
+                            combinedText.contains("verify identity")) {
+                            android.util.Log.d("AccessibilityService", "✅ Allowed PIN/Password screen")
+                            return
+                        }
+
                         // 1. Block Uninstall attempts
-                        if (combinedText.contains("uninstall") || combinedText.contains("remove app") || 
-                            combinedText.contains("delete")) {
+                        // Removed generic "delete" to avoid false positives
+                        if (combinedText.contains("uninstall") || combinedText.contains("remove app")) {
                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Uninstall action")
                             triggerGlobalActionHome(true) // Immediate block
                             return
                         }
                         
                         // 2. Block Admin Deactivation / Tampering
+                        // Removed generic "disable" to avoid false positives
                         if (combinedText.contains("deactivate") || combinedText.contains("remove admin") || 
-                            combinedText.contains("disable") || combinedText.contains("verification code") ||
-                            combinedText.contains("captcha") || combinedText.contains("device admin")) {
-                            android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Admin Tampering (Verification/Deactivation)")
+                            combinedText.contains("device admin")) {
+                            android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Admin Tampering")
                             triggerGlobalActionHome(true) // Immediate block
                             return
+                        }
+                        
+                        // Refined Verification Code check (only if related to admin/mytime)
+                        if (combinedText.contains("verification code") || combinedText.contains("captcha")) {
+                             if (combinedText.contains("admin") || combinedText.contains("mytime")) {
+                                 android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Verification Code")
+                                 triggerGlobalActionHome(true)
+                                 return
+                             }
                         }
                         
                         // 3. Block Force Stop / Clear Data
@@ -230,16 +250,50 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     }
                 }
 
-                // SPECIFIC SETTINGS PROTECTION
+                // SPECIFIC SETTINGS PROTECTION (Enhanced with rootInActiveWindow)
                 if (isSettings) {
                     // Check if we are in a MyTime-related screen
-                    if (combinedText.contains("mytime") || combinedText.contains("mytask")) {
+                    // We check both the event text AND the actual screen content for robustness
+                    var isMyTimeScreen = combinedText.contains("mytime") || combinedText.contains("mytask")
+                    
+                    // If event text doesn't have it (e.g. resume from background), check the window content
+                    if (!isMyTimeScreen) {
+                        val rootNode = rootInActiveWindow
+                        if (rootNode != null) {
+                            isMyTimeScreen = isScreenRelatedToApp(rootNode)
+                            // Don't recycle rootNode here as we might need it, or let GC handle it? 
+                            // Best practice is to recycle if we are done, but isScreenRelatedToApp is recursive.
+                            // We will let the system handle it or recycle if we were doing manual traversal in a loop.
+                            // For safety with recursive helper, we won't manually recycle inside the helper.
+                        }
+                    }
+
+                    if (isMyTimeScreen) {
                         // Block Accessibility Switch toggling
-                        if (combinedText.contains("accessibility") || combinedText.contains("service") ||
+                        // We also check the screen content for switch widgets if text is missing
+                        var isSwitchAction = combinedText.contains("accessibility") || combinedText.contains("service") ||
                             combinedText.contains("on") || combinedText.contains("off") ||
-                            combinedText.contains("switch") || combinedText.contains("checked")) {
-                             
-                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Accessibility tampering")
+                            combinedText.contains("switch") || combinedText.contains("checked") || 
+                            combinedText.contains("stop") // "Stop MyTime?" dialog
+                            
+                        if (!isSwitchAction) {
+                             // If we know it's MyTime screen, any click on a switch or "Stop" button is suspicious
+                             // We can be more aggressive here.
+                             // Let's check if the event source is a switch or button with "Stop"
+                             val source = event.source
+                             if (source != null) {
+                                 val className = source.className?.toString()?.lowercase() ?: ""
+                                 val nodeText = source.text?.toString()?.lowercase() ?: ""
+                                 
+                                 if (className.contains("switch") || 
+                                     nodeText.contains("stop") || nodeText.contains("allow") || nodeText.contains("turn off")) {
+                                     isSwitchAction = true
+                                 }
+                             }
+                        }
+
+                        if (isSwitchAction) {
+                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Accessibility tampering (Deep Check)")
                              triggerGlobalActionHome(true) // Immediate block
                              return
                         }
@@ -405,6 +459,30 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         }
     }
     
+    private fun isScreenRelatedToApp(node: AccessibilityNodeInfo?): Boolean {
+        if (node == null) return false
+        
+        // Check current node text
+        val text = node.text?.toString()?.lowercase() ?: ""
+        val desc = node.contentDescription?.toString()?.lowercase() ?: ""
+        
+        if (text.contains("mytime") || text.contains("mytask") || 
+            desc.contains("mytime") || desc.contains("mytask")) {
+            return true
+        }
+        
+        // Check children
+        val count = node.childCount
+        for (i in 0 until count) {
+            val child = node.getChild(i)
+            if (isScreenRelatedToApp(child)) {
+                return true
+            }
+        }
+        
+        return false
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)

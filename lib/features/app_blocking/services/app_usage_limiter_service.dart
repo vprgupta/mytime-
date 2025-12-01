@@ -51,7 +51,23 @@ class AppUsageLimiterService {
         final packageName = call.arguments['packageName'] as String?;
         if (packageName != null) {
           debugPrint('🚀 Native reported limited app launch: $packageName');
-          startAppUsage(packageName);
+          // We don't need to start timer here anymore as native handles it, 
+          // but we can keep it for UI updates if needed.
+          // startAppUsage(packageName); 
+        }
+      } else if (call.method == 'onLimitedAppClosed') {
+        final packageName = call.arguments['packageName'] as String?;
+        if (packageName != null) {
+          debugPrint('⏹️ Native reported limited app closed: $packageName');
+          // stopAppUsage(packageName);
+        }
+      } else if (call.method == 'updateUsage') {
+        final packageName = call.arguments['packageName'] as String?;
+        final usedMinutes = call.arguments['usedMinutes'] as int?;
+        
+        if (packageName != null && usedMinutes != null) {
+          debugPrint('🔄 Native updated usage for $packageName: $usedMinutes minutes');
+          await _syncUsageFromNative(packageName, usedMinutes);
         }
       }
     });
@@ -59,7 +75,7 @@ class AppUsageLimiterService {
     // Sync all active limits to native on startup
     for (var limit in _limitsBox.values) {
       if (limit.isActive && !limit.isBlocked) {
-        await _notifyNativeLimitAdded(limit.packageName);
+        await _notifyNativeLimitAdded(limit.packageName, limit.currentLimitMinutes, limit.usedMinutesToday);
       }
     }
 
@@ -73,7 +89,10 @@ class AppUsageLimiterService {
     final now = DateTime.now();
     final existingLimit = await getAppLimit(packageName);
     
+    int currentUsed = 0;
+    
     if (existingLimit != null) {
+      currentUsed = existingLimit.usedMinutesToday;
       // Update existing limit
       if (existingLimit.isInBox) {
         await existingLimit.delete();
@@ -113,7 +132,7 @@ class AppUsageLimiterService {
     }
     
     // Notify native side that this app now has a limit (for AccessibilityService tracking)
-    await _notifyNativeLimitAdded(packageName);
+    await _notifyNativeLimitAdded(packageName, limitMinutes, currentUsed);
   }
   
   // Get usage limit for an app
@@ -231,10 +250,39 @@ class AppUsageLimiterService {
     }
   }
 
-  Future<void> _notifyNativeLimitAdded(String packageName) async {
+  // Sync usage from native
+  Future<void> _syncUsageFromNative(String packageName, int usedMinutes) async {
+    final limit = await getAppLimit(packageName);
+    if (limit == null) return;
+    
+    // Only update if native usage is greater (to avoid race conditions)
+    if (usedMinutes > limit.usedMinutesToday) {
+       if (limit.isInBox) {
+        await limit.delete();
+      }
+      
+      final updatedLimit = limit.copyWith(
+        usedMinutesToday: usedMinutes,
+        updatedAt: DateTime.now(),
+      );
+      
+      await _limitsBox.add(updatedLimit);
+      
+      // Check if limit is exceeded (Native should have blocked it, but we update UI state)
+      if (updatedLimit.isLimitExceeded && !updatedLimit.isBlocked) {
+        await _blockAppForToday(packageName);
+      }
+    }
+  }
+
+  Future<void> _notifyNativeLimitAdded(String packageName, int limitMinutes, int usedMinutes) async {
     try {
-      await platform.invokeMethod('addLimitedApp', {'packageName': packageName});
-      debugPrint('📊 Notified native: Limit added for $packageName');
+      await platform.invokeMethod('setAppLimit', {
+        'packageName': packageName,
+        'limitMinutes': limitMinutes,
+        'usedMinutes': usedMinutes
+      });
+      debugPrint('📊 Notified native: Limit set for $packageName ($usedMinutes/$limitMinutes)');
     } catch (e) {
       debugPrint('Error notifying native about limit: $e');
     }

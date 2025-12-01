@@ -34,6 +34,7 @@ class MainActivity : FlutterActivity() {
         var blockedPackages = mutableSetOf<String>()
         var blockedAppNames = mutableSetOf<String>()
         var limitedPackages = mutableSetOf<String>()  // Apps with usage limits
+        var isCommitmentActive = false
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -45,6 +46,9 @@ class MainActivity : FlutterActivity() {
         // Initialize device admin
         initializeDeviceAdmin()
         
+        // Restore active blocking sessions first
+        restoreActiveSessions()
+        
         // Cleanup expired blocking sessions
         cleanupExpiredSessions()
        
@@ -53,10 +57,12 @@ class MainActivity : FlutterActivity() {
         
         // Start commitment monitoring and protection ONLY if commitment is active
         if (commitmentManager.isCommitmentActive()) {
+            isCommitmentActive = true
             startUninstallProtection()  // Only start when commitment is active!
             startCommitmentMonitoring()
             android.util.Log.d("MainActivity", "🔒 Commitment mode is ACTIVE - Starting protection services")
         } else {
+            isCommitmentActive = false
             // Ensure protection services are stopped if commitment is not active
             stopProtectionServices()
             android.util.Log.d("MainActivity", "✅ No active commitment - Protection services stopped")
@@ -115,6 +121,14 @@ class MainActivity : FlutterActivity() {
                         setUninstallBlocked(packageName, true)
                         
                         startRealTimeMonitoring()
+                        
+                        // IMMEDIATE BLOCK CHECK: Check if this app is currently in foreground
+                        val currentApp = getCurrentForegroundApp()
+                        if (currentApp == packageName) {
+                            blockAppImmediately(packageName)
+                            android.util.Log.d("MainActivity", "🚫 Immediate kick-out (UsageStats) for $packageName")
+                        }
+                        
                         android.util.Log.d("MainActivity", "Added $packageName ($appName) to blocked list, ends at $endTime")
                     }
                     result.success(null)
@@ -211,6 +225,19 @@ class MainActivity : FlutterActivity() {
                     }
                     result.success(null)
                 }
+
+                "setAppLimit" -> {
+                    val packageName = call.argument<String>("packageName")
+                    val limitMinutes = call.argument<Int>("limitMinutes") ?: 0
+                    val usedMinutes = call.argument<Int>("usedMinutes") ?: 0
+                    
+                    if (packageName != null) {
+                        limitedPackages.add(packageName)
+                        AppBlockingAccessibilityService.updateAppLimit(packageName, limitMinutes, usedMinutes)
+                    }
+                    result.success(null)
+                }
+
                 "getAppName" -> {
                     val packageName = call.argument<String>("packageName")
                     val appName = getAppName(packageName ?: "")
@@ -272,6 +299,7 @@ class MainActivity : FlutterActivity() {
                     val hours = call.argument<Int>("hours") ?: 1
                     val success = commitmentManager.startCommitment(hours)
                     if (success) {
+                        isCommitmentActive = true
                         startCommitmentMonitoring()
                         // Enforce uninstall protection via Device Admin
                         setUninstallBlocked(packageName, true)
@@ -345,7 +373,8 @@ class MainActivity : FlutterActivity() {
                 }.start()
                 
                 if (isMonitoring) {
-                    handler.postDelayed(this, 5000) // Check every 5 seconds (battery optimized)
+                    // OPTIMIZATION: Increased polling interval to 10 seconds to reduce CPU usage and heating
+                    handler.postDelayed(this, 10000) 
                 }
             }
         }
@@ -512,6 +541,7 @@ class MainActivity : FlutterActivity() {
             
             // Disable Device Admin if no commitment active
             if (isDeviceAdminEnabled() && !commitmentManager.isCommitmentActive()) {
+                isCommitmentActive = false
                 try {
                     // Remove uninstall block for MyTime app
                     devicePolicyManager?.setUninstallBlocked(adminComponent!!, packageName, false)
@@ -621,6 +651,32 @@ class MainActivity : FlutterActivity() {
         return now < endTime
     }
     
+    private fun restoreActiveSessions() {
+        try {
+            val prefs = getSharedPreferences("BlockingSessions", Context.MODE_PRIVATE)
+            val now = System.currentTimeMillis()
+            var restoredCount = 0
+            
+            prefs.all.forEach { (packageName, endTime) ->
+                if (endTime is Long && endTime > now) {
+                    blockedApps.add(packageName)
+                    blockedPackages.add(packageName)
+                    val appName = getAppName(packageName)
+                    blockedAppNames.add(appName.lowercase())
+                    AppBlockingAccessibilityService.addBlockedApp(packageName)
+                    restoredCount++
+                }
+            }
+            
+            if (restoredCount > 0) {
+                startMonitoring()
+                android.util.Log.d("MainActivity", "♻️ Restored $restoredCount active blocking sessions")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to restore active sessions: ${e.message}")
+        }
+    }
+
     private fun cleanupExpiredSessions() {
         try {
             val prefs = getSharedPreferences("BlockingSessions", Context.MODE_PRIVATE)
@@ -662,6 +718,23 @@ class MainActivity : FlutterActivity() {
         android.util.Log.d("MainActivity", "📊 Removed limited app: $packageName")
     }
     
+    fun updateNativeUsage(packageName: String, usedMinutes: Int) {
+        // Notify Flutter about usage update
+        flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+            val channel = MethodChannel(messenger, CHANNEL)
+            handler.post {
+                try {
+                    channel.invokeMethod("updateUsage", mapOf(
+                        "packageName" to packageName,
+                        "usedMinutes" to usedMinutes
+                    ))
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "Failed to update usage: ${e.message}")
+                }
+            }
+        }
+    }
+    
     fun notifyAppLaunched(packageName: String) {
         // Notify Flutter that a limited app was launched
         flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
@@ -695,6 +768,8 @@ class MainActivity : FlutterActivity() {
             }
         }
     }
+    
+
     
     private fun openAccessibilitySettings() {
         try {
@@ -788,7 +863,7 @@ class MainActivity : FlutterActivity() {
             }
         }
     }
-    
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)

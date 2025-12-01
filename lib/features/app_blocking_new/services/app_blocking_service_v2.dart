@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
-import '../../app_blocking/models/blocked_app.dart';
+
 import '../../app_blocking/models/blocking_session.dart';
 import '../../app_blocking/services/app_usage_limiter_service.dart';
 
@@ -13,7 +12,7 @@ class AppBlockingServiceV2 {
 
   static const MethodChannel _channel = MethodChannel('app_blocking');
   
-  late Box<BlockedApp> _blockedAppsBox;
+
   late Box<BlockingSession> _sessionsBox;
   bool _isInitialized = false;
 
@@ -23,7 +22,7 @@ class AppBlockingServiceV2 {
     if (_isInitialized) return;
     
     try {
-      _blockedAppsBox = await Hive.openBox<BlockedApp>('blocked_apps_v2');
+
       _sessionsBox = await Hive.openBox<BlockingSession>('blocking_sessions_v2');
       _isInitialized = true;
       
@@ -51,7 +50,7 @@ class AppBlockingServiceV2 {
         }
       });
     } catch (e) {
-      print('Error initializing AppBlockingServiceV2: $e');
+      // debugPrint('Error initializing AppBlockingServiceV2: $e');
     }
   }
   
@@ -60,9 +59,9 @@ class AppBlockingServiceV2 {
     try {
       final limiterService = AppUsageLimiterService();
       await limiterService.startAppUsage(packageName);
-      print('📊 Started tracking usage for: $packageName');
+      // debugPrint('📊 Started tracking usage for: $packageName');
     } catch (e) {
-      print('Error starting usage tracking: $e');
+      // debugPrint('Error starting usage tracking: $e');
     }
   }
   
@@ -71,9 +70,9 @@ class AppBlockingServiceV2 {
     try {
       final limiterService = AppUsageLimiterService();
       await limiterService.stopAppUsage(packageName);
-      print('📊 Stopped tracking usage for: $packageName');
+      // debugPrint('📊 Stopped tracking usage for: $packageName');
     } catch (e) {
-      print('Error stopping usage tracking: $e');
+      // debugPrint('Error stopping usage tracking: $e');
     }
   }
 
@@ -87,7 +86,7 @@ class AppBlockingServiceV2 {
         await _channel.invokeMethod('startMonitoring');
       }
     } catch (e) {
-      print('Error syncing sessions to native: $e');
+      // debugPrint('Error syncing sessions to native: $e');
     }
   }
 
@@ -103,7 +102,7 @@ class AppBlockingServiceV2 {
       }
       return false;
     } catch (e) {
-      print('Error checking permissions: $e');
+      // debugPrint('Error checking permissions: $e');
       return false;
     }
   }
@@ -169,7 +168,7 @@ class AppBlockingServiceV2 {
       await _channel.invokeMethod('startMonitoring');
     } catch (e) {
       // If native call fails, we should probably rollback the session or mark it as failed
-      print('Native block failed: $e');
+      // debugPrint('Native block failed: $e');
       throw Exception('Failed to enforce block on device');
     }
   }
@@ -188,7 +187,7 @@ class AppBlockingServiceV2 {
     try {
       await _channel.invokeMethod('removeBlockedApp', {'packageName': packageName});
     } catch (e) {
-      print('Error unblocking app natively: $e');
+      // debugPrint('Error unblocking app natively: $e');
     }
   }
 
@@ -227,7 +226,7 @@ class AppBlockingServiceV2 {
     
     // Process expirations
     for (var packageName in expiredSessions) {
-      print('Auto-expiring session for $packageName');
+      // debugPrint('Auto-expiring session for $packageName');
       unblockApp(packageName);
     }
   }
@@ -242,7 +241,7 @@ class AppBlockingServiceV2 {
     try {
       await _channel.invokeMethod('enableDeviceAdmin');
     } catch (e) {
-      print('Error enabling device admin: $e');
+      // debugPrint('Error enabling device admin: $e');
     }
   }
 
@@ -253,7 +252,7 @@ class AppBlockingServiceV2 {
       // Also ensure device admin is enabled
       await enableDeviceAdmin();
     } catch (e) {
-      print('Error setting uninstall lock: $e');
+      // debugPrint('Error setting uninstall lock: $e');
     }
   }
 

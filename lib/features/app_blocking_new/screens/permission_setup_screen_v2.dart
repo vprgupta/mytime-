@@ -5,7 +5,7 @@ import '../../../core/widgets/gradient_button.dart';
 import '../../../core/widgets/modern_card.dart';
 
 class PermissionSetupScreenV2 extends StatefulWidget {
-  const PermissionSetupScreenV2({Key? key}) : super(key: key);
+  const PermissionSetupScreenV2({super.key});
 
   @override
   State<PermissionSetupScreenV2> createState() => _PermissionSetupScreenV2State();
@@ -35,7 +35,7 @@ class _PermissionSetupScreenV2State extends State<PermissionSetupScreenV2> {
         });
       }
     } catch (e) {
-      print('Error checking permissions: $e');
+      // debugPrint('Error checking permissions: $e');
     }
   }
 

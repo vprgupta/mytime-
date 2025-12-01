@@ -133,13 +133,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       margin: const EdgeInsets.only(top: 24),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: AppColors.successGreen.withOpacity(0.1),
+                        color: AppColors.successGreen.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.successGreen.withValues(alpha:0.3)),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Icon(Icons.verified_user_rounded, size: 16, color: AppColors.successGreen),
                           SizedBox(width: 8),
                           Text(
@@ -176,7 +176,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         decoration: BoxDecoration(
                           color: _currentPage == index
                               ? AppColors.primaryBlue
-                              : AppColors.textSecondary.withOpacity(0.3),
+                              : AppColors.textSecondary.withValues(alpha:0.3),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       );
@@ -226,7 +226,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Container(
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha:0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 80, color: color),

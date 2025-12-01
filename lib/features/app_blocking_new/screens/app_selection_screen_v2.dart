@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:installed_apps/app_info.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/gradient_button.dart';
 import '../../app_blocking/services/installed_apps_service.dart';
@@ -10,7 +9,7 @@ import '../providers/app_blocking_provider_v2.dart';
 class AppSelectionScreenV2 extends StatefulWidget {
   final bool isQuickMode;
 
-  const AppSelectionScreenV2({Key? key, this.isQuickMode = false}) : super(key: key);
+  const AppSelectionScreenV2({super.key, this.isQuickMode = false});
 
   @override
   State<AppSelectionScreenV2> createState() => _AppSelectionScreenV2State();
@@ -170,6 +169,7 @@ class _AppSelectionScreenV2State extends State<AppSelectionScreenV2> {
     // If not in quick mode (or even if in quick mode, user might want custom time),
     // show a duration picker dialog.
     
+    final provider = context.read<AppBlockingProviderV2>();
     int? selectedDuration = _durationMinutes;
 
     if (!widget.isQuickMode) {
@@ -181,7 +181,7 @@ class _AppSelectionScreenV2State extends State<AppSelectionScreenV2> {
 
     if (selectedDuration == null) return; // User cancelled
 
-    final provider = context.read<AppBlockingProviderV2>();
+
     
     for (final pkg in _selectedApps) {
       await provider.blockApp(pkg, selectedDuration);
@@ -199,7 +199,7 @@ class _AppSelectionScreenV2State extends State<AppSelectionScreenV2> {
 class _DurationPickerDialog extends StatefulWidget {
   final int initialDuration;
 
-  const _DurationPickerDialog({Key? key, required this.initialDuration}) : super(key: key);
+  const _DurationPickerDialog({required this.initialDuration});
 
   @override
   State<_DurationPickerDialog> createState() => _DurationPickerDialogState();
@@ -255,7 +255,7 @@ class _DurationPickerDialogState extends State<_DurationPickerDialog> {
               labelText: 'Custom Duration (minutes)',
               labelStyle: const TextStyle(color: AppColors.textSecondary),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: AppColors.border.withOpacity(0.3)),
+                borderSide: BorderSide(color: AppColors.border.withValues(alpha:0.3)),
               ),
               focusedBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: AppColors.primaryBlue),

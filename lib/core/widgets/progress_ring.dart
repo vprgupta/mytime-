@@ -112,7 +112,7 @@ class _ProgressRingPainter extends CustomPainter {
 
     // Background circle
     final backgroundPaint = Paint()
-      ..color = color.withOpacity(0.1)
+      ..color = color.withValues(alpha:0.1)
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -122,7 +122,7 @@ class _ProgressRingPainter extends CustomPainter {
     // Progress arc
     final progressPaint = Paint()
       ..shader = LinearGradient(
-        colors: [color, color.withOpacity(0.7)],
+        colors: [color, color.withValues(alpha:0.7)],
       ).createShader(Rect.fromCircle(center: center, radius: radius))
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke

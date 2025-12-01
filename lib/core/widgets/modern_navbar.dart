@@ -215,31 +215,31 @@ class _ModernNavbarState extends State<ModernNavbar>
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            Colors.white.withOpacity(0.2 + (_morphAnimation.value * 0.1)),
-                            Colors.white.withOpacity(0.1 + (_morphAnimation.value * 0.05)),
-                            Colors.white.withOpacity(0.15 + (_morphAnimation.value * 0.08)),
+                            Colors.white.withValues(alpha:0.2 + (_morphAnimation.value * 0.1)),
+                            Colors.white.withValues(alpha:0.1 + (_morphAnimation.value * 0.05)),
+                            Colors.white.withValues(alpha:0.15 + (_morphAnimation.value * 0.08)),
                           ],
                           stops: const [0.0, 0.5, 1.0],
                         ),
                         borderRadius: BorderRadius.circular(28 + (_morphAnimation.value * 8)),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.3 + (_morphAnimation.value * 0.2)),
+                          color: Colors.white.withValues(alpha:0.3 + (_morphAnimation.value * 0.2)),
                           width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1 + (_morphAnimation.value * 0.1)),
+                            color: Colors.black.withValues(alpha:0.1 + (_morphAnimation.value * 0.1)),
                             blurRadius: 30 + (_morphAnimation.value * 20),
                             offset: const Offset(0, -8),
                             spreadRadius: -2,
                           ),
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha:0.05),
                             blurRadius: 15,
                             offset: const Offset(0, -4),
                           ),
                           BoxShadow(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha:0.8),
                             blurRadius: 1,
                             offset: const Offset(0, -1),
                           ),
@@ -308,7 +308,7 @@ class _ModernNavbarState extends State<ModernNavbar>
                 width: 4,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.6 * _morphAnimation.value),
+                  color: Colors.white.withValues(alpha:0.6 * _morphAnimation.value),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -357,19 +357,19 @@ class _ModernNavbarState extends State<ModernNavbar>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF667eea).withOpacity(0.3 + (_morphAnimation.value * 0.2)),
-                  const Color(0xFF764ba2).withOpacity(0.2 + (_morphAnimation.value * 0.1)),
-                  const Color(0xFF667eea).withOpacity(0.25 + (_morphAnimation.value * 0.15)),
+                  const Color(0xFF667eea).withValues(alpha:0.3 + (_morphAnimation.value * 0.2)),
+                  const Color(0xFF764ba2).withValues(alpha:0.2 + (_morphAnimation.value * 0.1)),
+                  const Color(0xFF667eea).withValues(alpha:0.25 + (_morphAnimation.value * 0.15)),
                 ],
               ),
               borderRadius: BorderRadius.circular(20 + (_morphAnimation.value * 8)),
               border: Border.all(
-                color: Colors.white.withOpacity(0.4 + (_morphAnimation.value * 0.3)),
+                color: Colors.white.withValues(alpha:0.4 + (_morphAnimation.value * 0.3)),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF667eea).withOpacity(0.3 + (_morphAnimation.value * 0.2)),
+                  color: const Color(0xFF667eea).withValues(alpha:0.3 + (_morphAnimation.value * 0.2)),
                   blurRadius: 12 + (_morphAnimation.value * 8),
                   offset: const Offset(0, 4),
                 ),
@@ -391,12 +391,12 @@ class _ModernNavbarState extends State<ModernNavbar>
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Colors.white.withOpacity(0.2),
-              Colors.white.withOpacity(0.1),
+              Colors.white.withValues(alpha:0.2),
+              Colors.white.withValues(alpha:0.1),
             ],
           ),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.3)),
+          border: Border.all(color: Colors.white.withValues(alpha:0.3)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -416,7 +416,7 @@ class _ModernNavbarState extends State<ModernNavbar>
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha:0.2),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: Colors.white, size: 16),
@@ -464,13 +464,13 @@ class _ModernNavbarState extends State<ModernNavbar>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.white.withOpacity(0.3),
-                  Colors.white.withOpacity(0.2),
+                  Colors.white.withValues(alpha:0.3),
+                  Colors.white.withValues(alpha:0.2),
                 ],
               ),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
               border: Border.all(
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha:0.3),
                 width: 1.5,
               ),
             ),
@@ -519,10 +519,10 @@ class _ModernNavbarState extends State<ModernNavbar>
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha:0.2),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha:0.3),
             width: 1.5,
           ),
         ),
@@ -636,13 +636,14 @@ class _NavBarItemState extends State<_NavBarItem>
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
                             colors: [
-                              const Color(0xFF667eea).withOpacity(0.3 * (1 - _rippleAnimation.value)),
-                              const Color(0xFF764ba2).withOpacity(0.1 * (1 - _rippleAnimation.value)),
+                              const Color(0xFF667eea).withValues(alpha:0.3 * (1 - _rippleAnimation.value)),
+                              const Color(0xFF764ba2).withValues(alpha:0.1 * (1 - _rippleAnimation.value)),
                             ],
                           ),
                         ),
                         transform: Matrix4.identity()
-                          ..scale(1 + _rippleAnimation.value * 0.8),
+                          // ignore: deprecated_member_use
+                          ..scale(1 + _rippleAnimation.value * 0.8, 1 + _rippleAnimation.value * 0.8, 1.0),
                       ),
                     );
                   },
@@ -678,8 +679,8 @@ class _NavBarItemState extends State<_NavBarItem>
                             decoration: widget.isActive ? BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  Colors.white.withOpacity(0.2),
-                                  Colors.white.withOpacity(0.1),
+                                  Colors.white.withValues(alpha:0.2),
+                                  Colors.white.withValues(alpha:0.1),
                                 ],
                               ),
                               borderRadius: BorderRadius.circular(12),
@@ -689,7 +690,7 @@ class _NavBarItemState extends State<_NavBarItem>
                               size: dynamicIconSize,
                               color: widget.isActive 
                                   ? Colors.white
-                                  : Colors.white.withOpacity(0.6),
+                                  : Colors.white.withValues(alpha:0.6),
                             ),
                           ),
                         ),
@@ -710,7 +711,7 @@ class _NavBarItemState extends State<_NavBarItem>
                               border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.red.withOpacity(0.5),
+                                  color: Colors.red.withValues(alpha:0.5),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -741,7 +742,7 @@ class _NavBarItemState extends State<_NavBarItem>
                       fontWeight: widget.isActive ? FontWeight.w700 : FontWeight.w500,
                       color: widget.isActive 
                           ? Colors.white
-                          : Colors.white.withOpacity(0.7),
+                          : Colors.white.withValues(alpha:0.7),
                       letterSpacing: widget.isActive ? 0.5 : 0,
                     ),
                     child: Text(

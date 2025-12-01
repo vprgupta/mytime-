@@ -5,7 +5,7 @@ import '../../../core/widgets/modern_card.dart';
 import '../../../core/widgets/gradient_button.dart';
 
 class CommitmentSetupScreen extends StatefulWidget {
-  const CommitmentSetupScreen({Key? key}) : super(key: key);
+  const CommitmentSetupScreen({super.key});
 
   @override
   State<CommitmentSetupScreen> createState() => _CommitmentSetupScreenState();
@@ -44,7 +44,7 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
       
       setState(() {});
     } catch (e) {
-      print('Error loading info: $e');
+      // debugPrint('Error loading info: $e');
     }
   }
   
@@ -73,7 +73,7 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
                   decoration: BoxDecoration(
                     color: index == _currentPage 
                         ? AppColors.primaryBlue 
-                        : AppColors.textSecondary.withOpacity(0.3),
+                        : AppColors.textSecondary.withValues(alpha:0.3),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 );
@@ -292,7 +292,7 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
           Container(
             margin: const EdgeInsets.only(bottom: 24),
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.warningOrange.withOpacity(0.3)),
+              border: Border.all(color: AppColors.warningOrange.withValues(alpha:0.3)),
               borderRadius: BorderRadius.circular(16),
             ),
             child: _buildDurationOption(0, '5 Minutes', 'Quick test (for debugging)'),
@@ -389,8 +389,8 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
           gradient: isSelected
               ? LinearGradient(
                   colors: [
-                    AppColors.primaryBlue.withOpacity(0.2),
-                    AppColors.primaryBlue.withOpacity(0.1),
+                    AppColors.primaryBlue.withValues(alpha:0.2),
+                    AppColors.primaryBlue.withValues(alpha:0.1),
                   ],
                 )
               : null,
@@ -460,8 +460,8 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: badge == 'Required' 
-                    ? AppColors.dangerRed.withOpacity(0.2)
-                    : AppColors.textSecondary.withOpacity(0.2),
+                    ? AppColors.dangerRed.withValues(alpha:0.2)
+                    : AppColors.textSecondary.withValues(alpha:0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -547,9 +547,9 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.dangerRed.withOpacity(0.1),
+              color: AppColors.dangerRed.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.dangerRed.withOpacity(0.3)),
+              border: Border.all(color: AppColors.dangerRed.withValues(alpha:0.3)),
             ),
             child: const Row(
               children: [

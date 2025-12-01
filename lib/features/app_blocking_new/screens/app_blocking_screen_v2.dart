@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:installed_apps/app_info.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/modern_card.dart';
 import '../../../core/widgets/gradient_button.dart';
@@ -10,10 +9,9 @@ import '../providers/app_blocking_provider_v2.dart';
 import 'app_selection_screen_v2.dart';
 import 'permission_setup_screen_v2.dart';
 import '../../app_blocking/screens/app_usage_limiter_screen.dart'; // Import legacy limiter screen
-import 'commitment_setup_screen.dart';
 
 class AppBlockingScreenV2 extends StatefulWidget {
-  const AppBlockingScreenV2({Key? key}) : super(key: key);
+  const AppBlockingScreenV2({super.key});
 
   @override
   State<AppBlockingScreenV2> createState() => _AppBlockingScreenV2State();
@@ -51,7 +49,7 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
   
   Future<void> _checkProtectionStatus() async {
     try {
-      final channel = const MethodChannel('app_blocking');
+      const channel = MethodChannel('app_blocking');
       final timestamp = await channel.invokeMethod<int>('getUninstallLock');
       if (timestamp != null && timestamp > 0) {
         final endTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
@@ -75,7 +73,7 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
         });
       }
     } catch (e) {
-      print('Error checking protection status: $e');
+      // debugPrint('Error checking protection status: $e');
     }
   }
 
@@ -122,7 +120,7 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
                       decoration: BoxDecoration(
                         color: AppColors.cardDark,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.border.withValues(alpha:0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -234,7 +232,7 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
           decoration: BoxDecoration(
             color: AppColors.surfaceDark,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.warningOrange.withOpacity(0.3)),
+            border: Border.all(color: AppColors.warningOrange.withValues(alpha:0.3)),
           ),
           child: Column(
             children: [
@@ -280,18 +278,18 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.warningOrange.withOpacity(0.1),
+        color: AppColors.warningOrange.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.warningOrange.withOpacity(0.3)),
+        border: Border.all(color: AppColors.warningOrange.withValues(alpha:0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: AppColors.warningOrange),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.warning_amber_rounded, color: AppColors.warningOrange),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text(
                   'Permissions Required',
                   style: TextStyle(
@@ -337,14 +335,14 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isBlocking 
-              ? [AppColors.primaryBlue.withOpacity(0.2), AppColors.primaryBlue.withOpacity(0.1)]
+              ? [AppColors.primaryBlue.withValues(alpha:0.2), AppColors.primaryBlue.withValues(alpha:0.1)]
               : [AppColors.surfaceDark, AppColors.surfaceDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isBlocking ? AppColors.primaryBlue.withOpacity(0.3) : AppColors.border.withOpacity(0.5),
+          color: isBlocking ? AppColors.primaryBlue.withValues(alpha:0.3) : AppColors.border.withValues(alpha:0.5),
         ),
       ),
       child: Row(
@@ -461,7 +459,7 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
           padding: const EdgeInsets.all(32),
           child: Column(
             children: [
-              Icon(Icons.check_circle_outline, size: 48, color: AppColors.textSecondary.withOpacity(0.3)),
+              Icon(Icons.check_circle_outline, size: 48, color: AppColors.textSecondary.withValues(alpha:0.3)),
               const SizedBox(height: 16),
               const Text(
                 'All clear! No apps blocked.',
@@ -520,7 +518,7 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: _isProtectionActive
-              ? [AppColors.dangerRed.withOpacity(0.2), AppColors.dangerRed.withOpacity(0.1)]
+              ? [AppColors.dangerRed.withValues(alpha:0.2), AppColors.dangerRed.withValues(alpha:0.1)]
               : [AppColors.surfaceDark, AppColors.surfaceDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -528,8 +526,8 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: _isProtectionActive 
-              ? AppColors.dangerRed.withOpacity(0.3) 
-              : AppColors.border.withOpacity(0.3),
+              ? AppColors.dangerRed.withValues(alpha:0.3) 
+              : AppColors.border.withValues(alpha:0.3),
         ),
       ),
       child: Column(
@@ -582,8 +580,8 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
               Switch(
                 value: _isProtectionActive,
                 onChanged: (value) => _handleCommitmentToggle(value),
-                activeColor: AppColors.dangerRed,
-                activeTrackColor: AppColors.dangerRed.withOpacity(0.3),
+                activeThumbColor: AppColors.dangerRed,
+                activeTrackColor: AppColors.dangerRed.withValues(alpha:0.3),
               ),
             ],
           ),
@@ -598,7 +596,7 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
       
       // 1. Check/Request Device Admin Permission
       try {
-        final channel = const MethodChannel('app_blocking');
+        const channel = MethodChannel('app_blocking');
         
         // Check current status
         final permissions = await channel.invokeMethod<Map>('checkPermissions');
@@ -634,7 +632,7 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
         }
         
       } catch (e) {
-        print('Error in toggle handler: $e');
+        // debugPrint('Error in toggle handler: $e');
       }
     } else {
       // User wants to disable
@@ -707,7 +705,7 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
         decoration: BoxDecoration(
           color: AppColors.cardDark,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primaryBlue.withOpacity(0.3)),
+          border: Border.all(color: AppColors.primaryBlue.withValues(alpha:0.3)),
         ),
         child: Text(
           label,
@@ -722,7 +720,7 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
   
   Future<void> _activateCommitment(int hours) async {
     try {
-      final channel = const MethodChannel('app_blocking');
+      const channel = MethodChannel('app_blocking');
       final success = await channel.invokeMethod<bool>('startCommitmentMode', {
         'hours': hours,
       });
@@ -758,8 +756,5 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
     }
   }
 
-  // Helper for old method calls if any remain
-  Future<void> _activateProtectionLock(int hours) async {
-    _activateCommitment(hours);
-  }
+
 }

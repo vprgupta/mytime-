@@ -6,7 +6,6 @@ import '../services/app_usage_limiter_service.dart';
 import '../services/installed_apps_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/modern_card.dart';
-import '../../../core/widgets/gradient_button.dart';
 
 class AppUsageLimiterScreen extends StatefulWidget {
   const AppUsageLimiterScreen({super.key});
@@ -257,7 +256,7 @@ class _AddLimitDialogState extends State<_AddLimitDialog> {
                 labelStyle: const TextStyle(color: AppColors.textSecondary),
                 prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.border.withOpacity(0.3)),
+                  borderSide: BorderSide(color: AppColors.border.withValues(alpha:0.3)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -283,7 +282,7 @@ class _AddLimitDialogState extends State<_AddLimitDialog> {
                         return const Icon(Icons.android, size: 40, color: AppColors.textSecondary);
                       },
                     ),
-                    title: Text(app.name ?? app.packageName, style: const TextStyle(color: AppColors.textPrimary)),
+                    title: Text(app.name, style: const TextStyle(color: AppColors.textPrimary)),
                     onTap: () => _showLimitSetting(app),
                   );
                 },
@@ -308,11 +307,11 @@ class _AddLimitDialogState extends State<_AddLimitDialog> {
               children: [
                 TextFormField(
                   style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Daily Limit (minutes)',
-                    labelStyle: const TextStyle(color: AppColors.textSecondary),
-                    enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.textSecondary)),
-                    focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primaryBlue)),
+                    labelStyle: TextStyle(color: AppColors.textSecondary),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.textSecondary)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primaryBlue)),
                   ),
                   keyboardType: TextInputType.number,
                   initialValue: _limitMinutes.toString(),
@@ -320,14 +319,14 @@ class _AddLimitDialogState extends State<_AddLimitDialog> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<int>(
-                  value: _durationDays,
+                  initialValue: _durationDays,
                   dropdownColor: AppColors.cardDark,
                   style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Duration',
-                    labelStyle: const TextStyle(color: AppColors.textSecondary),
-                    enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.textSecondary)),
-                    focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primaryBlue)),
+                    labelStyle: TextStyle(color: AppColors.textSecondary),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.textSecondary)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primaryBlue)),
                   ),
                   items: const [
                     DropdownMenuItem(value: -1, child: Text('Indefinite')),
@@ -349,7 +348,7 @@ class _AddLimitDialogState extends State<_AddLimitDialog> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue),
                 onPressed: () {
-                  widget.onLimitAdded(app.packageName, app.name ?? app.packageName, _limitMinutes, _durationDays);
+                  widget.onLimitAdded(app.packageName, app.name, _limitMinutes, _durationDays);
                   Navigator.pop(context); // Close limit dialog
                   Navigator.pop(context); // Close app list dialog
                 },

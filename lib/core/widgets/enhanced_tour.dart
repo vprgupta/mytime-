@@ -214,7 +214,7 @@ class EnhancedTourController {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha:0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -310,9 +310,9 @@ class EnhancedTourController {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              border: Border.all(color: color.withOpacity(0.2)),
+              border: Border.all(color: color.withValues(alpha:0.2)),
               borderRadius: BorderRadius.circular(12),
-              color: color.withOpacity(0.05),
+              color: color.withValues(alpha:0.05),
             ),
             child: Row(
               children: [
@@ -468,7 +468,7 @@ class _AppTourState extends State<AppTour> with TickerProviderStateMixin {
           child: Stack(
             children: [
               Container(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withValues(alpha:0.7),
                 child: GestureDetector(
                   onTap: () {},
                 ),
@@ -505,7 +505,7 @@ class _AppTourState extends State<AppTour> with TickerProviderStateMixin {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha:0.2),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -520,7 +520,7 @@ class _AppTourState extends State<AppTour> with TickerProviderStateMixin {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: step.color.withOpacity(0.1),
+                  color: step.color.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(step.icon, color: step.color, size: 24),
@@ -587,7 +587,7 @@ class _AppTourState extends State<AppTour> with TickerProviderStateMixin {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha:0.9),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
@@ -602,7 +602,7 @@ class _AppTourState extends State<AppTour> with TickerProviderStateMixin {
         Expanded(
           child: LinearProgressIndicator(
             value: (_currentStep + 1) / widget.steps.length,
-            backgroundColor: Colors.white.withOpacity(0.3),
+            backgroundColor: Colors.white.withValues(alpha:0.3),
             valueColor: AlwaysStoppedAnimation<Color>(
               widget.steps[_currentStep].color,
             ),

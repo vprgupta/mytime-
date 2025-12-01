@@ -152,7 +152,18 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         
-        // Only process window state changes and content changes for more responsive blocking
+        val packageName = event.packageName?.toString()
+        
+        // CRITICAL SECURITY: Always process events from Settings or Package Installer immediately (No Debounce)
+        // This prevents race conditions where a user taps fast or switches apps quickly
+        if (packageName == "com.android.settings" || 
+            packageName?.contains("packageinstaller") == true ||
+            packageName == "com.google.android.packageinstaller") {
+            processEvent(event)
+            return
+        }
+        
+        // For other apps (Usage Tracking), use debounce to save battery
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             
@@ -176,24 +187,60 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 return
             }
             
-            // 2. Security Hardening: Block "Clear Data" and "Disable Service" in Settings for MyTime
-            if (packageName == "com.android.settings") {
+            // 2. Security Hardening: Block "Clear Data", "Disable Service", and "Uninstall"
+            if (MainActivity.isCommitmentActive) {
                 val text = event.text?.toString()?.lowercase() ?: ""
+                val contentDescription = event.contentDescription?.toString()?.lowercase() ?: ""
+                val combinedText = "$text $contentDescription"
                 
-                // Only enforce strict protection if Commitment Mode is active
+                // GLOBAL SECURITY BLOCKS (Aggressive)
+                // If Commitment Mode is active, we block these keywords GLOBALLY in Settings/Installers
+                val isSettings = packageName.contains("settings") || packageName.contains("packageinstaller") || 
+                                 packageName.contains("permission") || packageName.contains("vending")
+                
                 if (MainActivity.isCommitmentActive) {
-                    // Check if user is interacting with MyTime settings
-                    if (text.contains("mytime") || text.contains("mytask")) {
-                        // Block critical actions: Storage, Uninstall, Force Stop, Accessibility Disable
-                        if (text.contains("storage") || text.contains("data") || 
-                            text.contains("clear") || text.contains("cache") ||
-                            text.contains("stop") || text.contains("force") ||
-                            text.contains("uninstall") || text.contains("disable") ||
-                            text.contains("accessibility") || text.contains("service") ||
-                            text.contains("off") || text.contains("turn off")) {
+                    // DEBUG LOGGING: Help us identify the exact package/text on OEM devices
+                    android.util.Log.d("AccessibilityService", "🔍 Event: pkg=$packageName, text=$combinedText")
+                
+                    if (isSettings) {
+                        // 1. Block Uninstall attempts
+                        if (combinedText.contains("uninstall") || combinedText.contains("remove app") || 
+                            combinedText.contains("delete")) {
+                            android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Uninstall action")
+                            triggerGlobalActionHome(true) // Immediate block
+                            return
+                        }
+                        
+                        // 2. Block Admin Deactivation / Tampering
+                        if (combinedText.contains("deactivate") || combinedText.contains("remove admin") || 
+                            combinedText.contains("disable") || combinedText.contains("verification code") ||
+                            combinedText.contains("captcha") || combinedText.contains("device admin")) {
+                            android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Admin Tampering (Verification/Deactivation)")
+                            triggerGlobalActionHome(true) // Immediate block
+                            return
+                        }
+                        
+                        // 3. Block Force Stop / Clear Data
+                        if (combinedText.contains("force stop") || combinedText.contains("clear storage") || 
+                            combinedText.contains("clear data") || combinedText.contains("clear cache")) {
+                            android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Force Stop/Clear Data")
+                            triggerGlobalActionHome(true) // Immediate block
+                            return
+                        }
+                    }
+                }
+
+                // SPECIFIC SETTINGS PROTECTION
+                if (isSettings) {
+                    // Check if we are in a MyTime-related screen
+                    if (combinedText.contains("mytime") || combinedText.contains("mytask")) {
+                        // Block Accessibility Switch toggling
+                        if (combinedText.contains("accessibility") || combinedText.contains("service") ||
+                            combinedText.contains("on") || combinedText.contains("off") ||
+                            combinedText.contains("switch") || combinedText.contains("checked")) {
                              
-                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented tampering in Settings")
-                             triggerGlobalActionHome()
+                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Accessibility tampering")
+                             triggerGlobalActionHome(true) // Immediate block
                              return
                         }
                     }
@@ -264,7 +311,6 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     } catch (e: Exception) {}
                 }
             }
-
         } catch (e: Exception) {
             android.util.Log.e("AccessibilityService", "Error processing event: ${e.message}")
         }
@@ -275,12 +321,13 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         isProcessing.set(false)
     }
     
-    fun triggerGlobalActionHome() {
+    fun triggerGlobalActionHome(immediate: Boolean = false) {
         // 1. Show overlay immediately to visually block interaction
         showBlockedOverlay()
         
-        // 2. Wait a moment so user sees the message, then kick to home
-        // Using a shorter delay (500ms) to be responsive but visible
+        val delay = if (immediate) 0L else 500L
+        
+        // 2. Kick to home
         handler.postDelayed({
             performGlobalAction(GLOBAL_ACTION_HOME)
             
@@ -288,7 +335,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             handler.postDelayed({
                 hideBlockedOverlay()
             }, 1000)
-        }, 500)
+        }, delay)
     }
     
     private fun showBlockedOverlay() {
@@ -317,6 +364,20 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        
+        // Restore Commitment Mode State
+        try {
+            val commitmentManager = CommitmentModeManager(this)
+            if (commitmentManager.isCommitmentActive()) {
+                MainActivity.isCommitmentActive = true
+                android.util.Log.d("AccessibilityService", "🔒 Restored Commitment Mode state: ACTIVE")
+            } else {
+                 MainActivity.isCommitmentActive = false
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to restore commitment state: ${e.message}")
+        }
+
         restoreBlockedApps()
         restoreUsageStats() // Restore usage limits and progress
         android.util.Log.d("AccessibilityService", "Service connected safely")

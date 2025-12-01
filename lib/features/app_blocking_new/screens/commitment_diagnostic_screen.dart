@@ -5,7 +5,7 @@ import '../../../core/widgets/modern_card.dart';
 import '../../../core/widgets/gradient_button.dart';
 
 class CommitmentDiagnosticScreen extends StatefulWidget {
-  const CommitmentDiagnosticScreen({Key? key}) : super(key: key);
+  const CommitmentDiagnosticScreen({super.key});
 
   @override
   State<CommitmentDiagnosticScreen> createState() => _CommitmentDiagnosticScreenState();
@@ -48,7 +48,7 @@ class _CommitmentDiagnosticScreenState extends State<CommitmentDiagnosticScreen>
       
       setState(() => _isLoading = false);
     } catch (e) {
-      print('Error loading diagnostics: $e');
+      // debugPrint('Error loading diagnostics: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -130,7 +130,7 @@ class _CommitmentDiagnosticScreenState extends State<CommitmentDiagnosticScreen>
   
   Widget _buildCommitmentStatus() {
     final isActive = _commitmentStatus['isActive'] ?? false;
-    final endTime = _commitmentStatus['endTime'] ?? 0;
+
     final remainingTime = _commitmentStatus['remainingTime'] ?? 0;
     
     final remainingHours = remainingTime ~/ (1000 * 60 * 60);
@@ -165,13 +165,13 @@ class _CommitmentDiagnosticScreenState extends State<CommitmentDiagnosticScreen>
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isActive 
-                    ? AppColors.dangerRed.withOpacity(0.1)
+                    ? AppColors.dangerRed.withValues(alpha:0.1)
                     : AppColors.surfaceDark,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isActive
-                      ? AppColors.dangerRed.withOpacity(0.3)
-                      : AppColors.border.withOpacity(0.3),
+                      ? AppColors.dangerRed.withValues(alpha:0.3)
+                      : AppColors.border.withValues(alpha:0.3),
                 ),
               ),
               child: Column(
@@ -339,13 +339,13 @@ class _CommitmentDiagnosticScreenState extends State<CommitmentDiagnosticScreen>
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: _batteryOptimized
-                    ? AppColors.successGreen.withOpacity(0.1)
-                    : AppColors.warningOrange.withOpacity(0.1),
+                    ? AppColors.successGreen.withValues(alpha:0.1)
+                    : AppColors.warningOrange.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _batteryOptimized
-                      ? AppColors.successGreen.withOpacity(0.3)
-                      : AppColors.warningOrange.withOpacity(0.3),
+                      ? AppColors.successGreen.withValues(alpha:0.3)
+                      : AppColors.warningOrange.withValues(alpha:0.3),
                 ),
               ),
               child: Column(

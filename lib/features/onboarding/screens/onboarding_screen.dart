@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/gradient_button.dart';
 import '../../../core/widgets/modern_card.dart';
@@ -27,6 +28,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void initState() {
     super.initState();
     _checkPermissions();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkPermissions() async {
@@ -107,24 +114,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
                 children: [
                   _buildSlide(
+                    index: 0,
                     icon: Icons.hourglass_empty_rounded,
                     title: 'Take Back Your Time',
                     description: 'Regain control over your digital life. MyTime helps you focus on what truly matters by managing your screen time effectively.',
                     color: AppColors.primaryBlue,
                   ),
                   _buildSlide(
+                    index: 1,
                     icon: Icons.block_rounded,
                     title: 'Block Distractions',
                     description: 'Select distracting apps and block them instantly. Create schedules to automate your focus hours and boost productivity.',
                     color: AppColors.warningOrange,
                   ),
                   _buildSlide(
+                    index: 2,
                     icon: Icons.lock_outline_rounded,
                     title: 'Stay Committed',
                     description: 'Need extra discipline? Use "Commitment Mode" to prevent uninstallation and strictly enforce your limits. No cheating allowed!',
                     color: AppColors.dangerRed,
                   ),
                   _buildSlide(
+                    index: 3,
                     icon: Icons.security_rounded,
                     title: 'Your Data is Safe',
                     description: 'We respect your privacy. All blocking logic runs locally on your device. We do not sell or share your personal usage data.',
@@ -212,24 +223,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildSlide({
+    required int index,
     required IconData icon,
     required String title,
     required String description,
     required Color color,
     Widget? extraContent,
   }) {
+    // Map index to Lottie file names
+    String lottieFile;
+    switch (index) {
+      case 0: lottieFile = 'assets/animations/hourglass.json'; break;
+      case 1: lottieFile = 'assets/animations/block.json'; break;
+      case 2: lottieFile = 'assets/animations/lock.json'; break;
+      case 3: lottieFile = 'assets/animations/shield.json'; break;
+      default: lottieFile = '';
+    }
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha:0.1),
-              shape: BoxShape.circle,
+            height: 200, // Fixed height for animation area
+            width: 200,
+            alignment: Alignment.center,
+            child: Lottie.asset(
+              lottieFile,
+              width: 200,
+              height: 200,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                // Fallback to Icon if Lottie file is missing
+                return Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha:0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 80, color: color),
+                );
+              },
             ),
-            child: Icon(icon, size: 80, color: color),
           ),
           const SizedBox(height: 40),
           Text(

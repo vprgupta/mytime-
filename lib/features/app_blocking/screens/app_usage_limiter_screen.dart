@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:installed_apps/app_info.dart';
 import '../models/app_usage_limit.dart';
 import '../services/app_usage_limiter_service.dart';
@@ -114,7 +115,29 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
 
   Widget _buildLimitsList() {
     if (_limits.isEmpty) {
-      return const Center(child: Text('No usage limits set', style: TextStyle(color: AppColors.textSecondary)));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Lottie.asset(
+              'assets/animations/empty_box.json',
+              width: 200,
+              height: 200,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No usage limits set',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Tap the + button to limit an app.',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      );
     }
 
     return ListView.builder(

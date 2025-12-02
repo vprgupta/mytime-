@@ -4,6 +4,7 @@ import 'package:hive/hive.dart';
 
 import '../../app_blocking/models/blocking_session.dart';
 import '../../app_blocking/services/app_usage_limiter_service.dart';
+import '../models/app_schedule.dart';
 
 class AppBlockingServiceV2 {
   static final AppBlockingServiceV2 _instance = AppBlockingServiceV2._internal();
@@ -17,6 +18,9 @@ class AppBlockingServiceV2 {
   bool _isInitialized = false;
 
   Timer? _sessionCheckTimer;
+  
+  final _sessionsChangedController = StreamController<void>.broadcast();
+  Stream<void> get onSessionsChanged => _sessionsChangedController.stream;
 
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -24,6 +28,7 @@ class AppBlockingServiceV2 {
     try {
 
       _sessionsBox = await Hive.openBox<BlockingSession>('blocking_sessions_v2');
+      await _initSchedules();
       _isInitialized = true;
       
       // Start monitoring for expired sessions
@@ -171,6 +176,8 @@ class AppBlockingServiceV2 {
       // debugPrint('Native block failed: $e');
       throw Exception('Failed to enforce block on device');
     }
+    
+    _sessionsChangedController.add(null);
   }
 
   /// Stop blocking an app
@@ -189,6 +196,8 @@ class AppBlockingServiceV2 {
     } catch (e) {
       // debugPrint('Error unblocking app natively: $e');
     }
+    
+    _sessionsChangedController.add(null);
   }
 
   /// Get currently active sessions
@@ -228,6 +237,10 @@ class AppBlockingServiceV2 {
     for (var packageName in expiredSessions) {
       // debugPrint('Auto-expiring session for $packageName');
       unblockApp(packageName);
+    }
+    
+    if (expiredSessions.isNotEmpty) {
+      _sessionsChangedController.add(null);
     }
   }
 
@@ -271,5 +284,77 @@ class AppBlockingServiceV2 {
     } catch (e) {
       return Duration.zero;
     }
+    }
+
+
+  // --- Block Scheduler ---
+
+  late Box<AppSchedule> _schedulesBox;
+
+  Future<void> _initSchedules() async {
+    if (!Hive.isAdapterRegistered(2)) {
+      Hive.registerAdapter(AppScheduleAdapter());
+    }
+    _schedulesBox = await Hive.openBox<AppSchedule>('app_schedules');
+  }
+
+  List<AppSchedule> getSchedules() {
+    if (!_isInitialized) return [];
+    return _schedulesBox.values.toList();
+  }
+
+  Future<void> saveSchedule(AppSchedule schedule) async {
+    if (!_isInitialized) await initialize();
+    if (!_schedulesBox.isOpen) await _initSchedules();
+
+    // COMMITMENT MODE CHECK
+    final existing = _schedulesBox.get(schedule.packageName);
+    if (existing != null) {
+       try {
+         final result = await _channel.invokeMethod('getCommitmentStatus');
+         if (result is Map && result['isActive'] == true) {
+            throw Exception('Cannot modify schedules while Commitment Mode is active.');
+         }
+       } catch (e) {
+         // Ignore
+       }
+    }
+
+    await _schedulesBox.put(schedule.packageName, schedule);
+    
+    // Sync to Native
+    await _syncScheduleToNative(schedule);
+    _sessionsChangedController.add(null);
+  }
+
+  Future<void> deleteSchedule(String packageName) async {
+    if (!_isInitialized) await initialize();
+    if (!_schedulesBox.isOpen) await _initSchedules();
+
+    // COMMITMENT MODE CHECK
+    try {
+       final result = await _channel.invokeMethod('getCommitmentStatus');
+       if (result is Map && result['isActive'] == true) {
+          throw Exception('Cannot delete schedules while Commitment Mode is active.');
+       }
+    } catch (e) {}
+
+    await _schedulesBox.delete(packageName);
+    
+    // Sync to Native (Remove)
+    await _channel.invokeMethod('removeAppSchedule', {'packageName': packageName});
+    _sessionsChangedController.add(null);
+  }
+
+  Future<void> _syncScheduleToNative(AppSchedule schedule) async {
+    await _channel.invokeMethod('setAppSchedule', {
+      'packageName': schedule.packageName,
+      'startHour': schedule.startHour,
+      'startMinute': schedule.startMinute,
+      'endHour': schedule.endHour,
+      'endMinute': schedule.endMinute,
+      'isEnabled': schedule.isEnabled,
+    });
   }
 }
+

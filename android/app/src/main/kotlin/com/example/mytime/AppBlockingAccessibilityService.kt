@@ -72,6 +72,20 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         }
         
         var instance: AppBlockingAccessibilityService? = null
+        
+        // Scheduler State
+        data class TimeSchedule(val startHour: Int, val startMinute: Int, val endHour: Int, val endMinute: Int, val isEnabled: Boolean)
+        val scheduledApps = mutableMapOf<String, TimeSchedule>()
+        
+        @JvmStatic
+        fun setAppSchedule(packageName: String, startH: Int, startM: Int, endH: Int, endM: Int, enabled: Boolean) {
+            scheduledApps[packageName] = TimeSchedule(startH, startM, endH, endM, enabled)
+        }
+        
+        @JvmStatic
+        fun removeAppSchedule(packageName: String) {
+            scheduledApps.remove(packageName)
+        }
     }
     
     private fun saveUsageStats(packageName: String) {
@@ -146,7 +160,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         if (newUsage >= limit) {
             android.util.Log.d("AccessibilityService", "🚫 Limit reached for $packageName! Blocking now.")
             addBlockedApp(packageName)
-            triggerGlobalActionHome()
+            triggerGlobalActionHome(true)
         }
     }
     
@@ -154,6 +168,12 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         if (event == null) return
         
         val packageName = event.packageName?.toString()
+        
+        // 1. IMMEDIATE BLOCKING: Check if this is a blocked app FIRST (Bypass Debounce)
+        if (MainActivity.blockedPackages.contains(packageName)) {
+             processEvent(event)
+             return
+        }
         
         // CRITICAL SECURITY: Always process events from Settings or Package Installer immediately (No Debounce)
         // This prevents race conditions where a user taps fast or switches apps quickly
@@ -181,11 +201,39 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         try {
             val packageName = event.packageName?.toString() ?: return
             
-            // 1. Check if this is a blocked app
+            // 1. Check if this is a blocked app (Manual Block)
             if (MainActivity.blockedPackages.contains(packageName)) {
                 android.util.Log.d("AccessibilityService", "🚫 Blocking detected app: $packageName")
-                triggerGlobalActionHome()
+                triggerGlobalActionHome(true) // Immediate block
                 return
+            }
+            
+            // 1.5 Check Schedule (Auto Block)
+            val schedule = AppBlockingAccessibilityService.scheduledApps[packageName]
+            if (schedule != null && schedule.isEnabled) {
+                // Check if CURRENT time is INSIDE the allowed window
+                val now = java.util.Calendar.getInstance()
+                val currentHour = now.get(java.util.Calendar.HOUR_OF_DAY)
+                val currentMinute = now.get(java.util.Calendar.MINUTE)
+                
+                val currentTotal = currentHour * 60 + currentMinute
+                val startTotal = schedule.startHour * 60 + schedule.startMinute
+                val endTotal = schedule.endHour * 60 + schedule.endMinute
+                
+                var isAllowed = false
+                if (startTotal <= endTotal) {
+                    // Normal range (e.g. 09:00 - 17:00)
+                    isAllowed = currentTotal in startTotal..endTotal
+                } else {
+                    // Overnight range (e.g. 22:00 - 06:00)
+                    isAllowed = currentTotal >= startTotal || currentTotal <= endTotal
+                }
+                
+                if (!isAllowed) {
+                    android.util.Log.d("AccessibilityService", "🚫 Blocking scheduled app (Outside Window): $packageName")
+                    triggerGlobalActionHome(true)
+                    return
+                }
             }
             
             // 2. Security Hardening: Block "Clear Data", "Disable Service", and "Uninstall"
@@ -379,17 +427,9 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         // 1. Show overlay immediately to visually block interaction
         showBlockedOverlay()
         
-        val delay = if (immediate) 0L else 500L
-        
-        // 2. Kick to home
-        handler.postDelayed({
-            performGlobalAction(GLOBAL_ACTION_HOME)
-            
-            // 3. Hide overlay shortly after kicking to home
-            handler.postDelayed({
-                hideBlockedOverlay()
-            }, 1000)
-        }, delay)
+        // Note: We no longer automatically kick to home or hide the overlay.
+        // The overlay is now persistent and must be dismissed by the user via the "Close" button,
+        // which will then navigate to Home.
     }
     
     private fun showBlockedOverlay() {

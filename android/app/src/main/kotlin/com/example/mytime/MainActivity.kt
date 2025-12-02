@@ -59,8 +59,7 @@ class MainActivity : FlutterActivity() {
        
         // Handle blocked app intent
         handleBlockedAppIntent()
-        
-        // Start commitment monitoring and protection ONLY if commitment is active
+                // Start commitment monitoring and protection ONLY if commitment is active
         if (commitmentManager.isCommitmentActive()) {
             isCommitmentActive = true
             startUninstallProtection()  // Only start when commitment is active!
@@ -80,7 +79,7 @@ class MainActivity : FlutterActivity() {
                         startMonitoring()
                         result.success(true)
                     } else {
-                        requestPermissions()
+                        // Don't auto-request permissions on startup, let the UI handle it
                         result.success(false)
                     }
                 }
@@ -348,6 +347,32 @@ class MainActivity : FlutterActivity() {
                     val packageName = call.argument<String>("packageName")
                     val isLimited = packageName?.let { isAppLimited(it) } ?: false
                     result.success(isLimited)
+                }
+                "setAppSchedule" -> {
+                    val packageName = call.argument<String>("packageName")
+                    val startHour = call.argument<Int>("startHour") ?: 0
+                    val startMinute = call.argument<Int>("startMinute") ?: 0
+                    val endHour = call.argument<Int>("endHour") ?: 0
+                    val endMinute = call.argument<Int>("endMinute") ?: 0
+                    val isEnabled = call.argument<Boolean>("isEnabled") ?: true
+                    
+                    if (packageName != null) {
+                        AppBlockingAccessibilityService.setAppSchedule(
+                            packageName, startHour, startMinute, endHour, endMinute, isEnabled
+                        )
+                        // Also persist locally in prefs to survive reboot (simple version)
+                        // For now, we rely on Flutter re-syncing on startup, which it does.
+                        android.util.Log.d("MainActivity", "📅 Set schedule for $packageName: $startHour:$startMinute - $endHour:$endMinute")
+                    }
+                    result.success(null)
+                }
+                "removeAppSchedule" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName != null) {
+                        AppBlockingAccessibilityService.removeAppSchedule(packageName)
+                        android.util.Log.d("MainActivity", "🗑️ Removed schedule for $packageName")
+                    }
+                    result.success(null)
                 }
                 else -> result.notImplemented()
             }

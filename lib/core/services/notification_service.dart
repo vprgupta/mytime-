@@ -39,22 +39,10 @@ class NotificationService {
     );
     
     // Request notification permissions for Android 13+
-    final granted = await _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
-    
-    if (kDebugMode) debugPrint('Notification permission granted: $granted');
-    
-    // Test notification to verify setup
-    Future.delayed(const Duration(seconds: 2), () {
-      showNotification('MyTask Ready! 🚀', 'Notifications are working properly');
-    });
   }
 
-  void _onNotificationTapped(NotificationResponse response) {
-    // Prevent TTS conflicts that cause app state reset
+  static void _onNotificationTapped(NotificationResponse response) {
     if (kDebugMode) debugPrint('Notification tapped: ${response.payload}');
-    // Don't auto-speak on tap to prevent state conflicts
   }
 
   static void _onBackgroundNotificationTapped(NotificationResponse response) {

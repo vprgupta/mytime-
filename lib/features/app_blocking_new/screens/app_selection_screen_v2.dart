@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/gradient_button.dart';
@@ -188,10 +189,59 @@ class _AppSelectionScreenV2State extends State<AppSelectionScreenV2> {
     }
     
     if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Blocked ${_selectedApps.length} apps for $selectedDuration mins')),
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          Future.delayed(const Duration(seconds: 2), () {
+            if (context.mounted) {
+              Navigator.of(context).pop();
+            }
+          });
+          return Dialog(
+            backgroundColor: AppColors.cardDark,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Lottie.asset(
+                    'assets/animations/checked.json',
+                    width: 150,
+                    height: 150,
+                    repeat: false,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Apps Blocked!',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${_selectedApps.length} apps blocked for $selectedDuration mins',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       );
+      
+      // Wait a moment for animation to finish if needed, or just pop
+      // The dialog is blocking, so we can just pop it after a delay or let user tap?
+      // User requested "show successfully app is blocked", usually auto-dismiss is nice.
+      // Let's auto-dismiss after 2 seconds.
+    }
+    
+    if (mounted) {
+      Navigator.pop(context); // Pop the screen
     }
   }
 }

@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import '../../app_blocking/models/blocking_session.dart';
 import '../../app_blocking/services/installed_apps_service.dart';
 import 'package:installed_apps/app_info.dart';
+import 'package:installed_apps/app_info.dart';
 import '../services/app_blocking_service_v2.dart';
+import '../models/app_schedule.dart';
 
 class AppBlockingProviderV2 extends ChangeNotifier {
   final AppBlockingServiceV2 _service = AppBlockingServiceV2();
@@ -43,6 +45,16 @@ class AppBlockingProviderV2 extends ChangeNotifier {
     } finally {
       _setLoading(false);
     }
+    
+    // Listen for external updates (e.g. auto-expiration)
+    _service.onSessionsChanged.listen((_) {
+      refreshData();
+    });
+    
+    // Periodic UI refresh for countdowns (every 30 seconds)
+    Stream.periodic(const Duration(seconds: 30)).listen((_) {
+      notifyListeners();
+    });
   }
 
   // Actions
@@ -140,5 +152,33 @@ class AppBlockingProviderV2 extends ChangeNotifier {
 
   Future<Duration> getUninstallLockRemaining() async {
     return await _service.getUninstallLockRemaining();
+  }
+  
+  // --- Scheduler ---
+  
+  AppSchedule? getSchedule(String packageName) {
+    try {
+      return _service.getSchedules().firstWhere((s) => s.packageName == packageName);
+    } catch (e) {
+      return null;
+    }
+  }
+  
+  Future<void> saveSchedule(AppSchedule schedule) async {
+    try {
+      await _service.saveSchedule(schedule);
+      notifyListeners();
+    } catch (e) {
+      rethrow; // Let UI handle error
+    }
+  }
+  
+  Future<void> deleteSchedule(String packageName) async {
+    try {
+      await _service.deleteSchedule(packageName);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
   }
 }

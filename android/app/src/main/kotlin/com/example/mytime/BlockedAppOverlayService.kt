@@ -65,9 +65,8 @@ class BlockedAppOverlayService : Service() {
                 else
                     WindowManager.LayoutParams.TYPE_PHONE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                        WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS, // Cover status/nav bars
                 PixelFormat.TRANSLUCENT
             )
             
@@ -93,19 +92,22 @@ class BlockedAppOverlayService : Service() {
             
             val cardParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
+                FrameLayout.LayoutParams.MATCH_PARENT
             )
             cardParams.gravity = Gravity.CENTER
-            cardParams.leftMargin = 64
-            cardParams.rightMargin = 64
+            // Removed margins for full screen effect
             rootLayout.addView(cardLayout, cardParams)
 
-            // Icon
-            val iconView = TextView(this)
-            iconView.text = "🔒"
-            iconView.textSize = 48f
-            iconView.gravity = Gravity.CENTER
-            cardLayout.addView(iconView)
+            // Lottie Animation
+            val lottieView = com.airbnb.lottie.LottieAnimationView(this)
+            lottieView.setAnimation("blocked_animation.json")
+            lottieView.repeatCount = com.airbnb.lottie.LottieDrawable.INFINITE
+            lottieView.playAnimation()
+            
+            // Increased size for better visibility
+            val lottieParams = LinearLayout.LayoutParams(800, 800) 
+            lottieParams.gravity = Gravity.CENTER
+            cardLayout.addView(lottieView, lottieParams)
             
             // Spacer
             val spacer1 = View(this)

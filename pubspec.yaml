@@ -28,6 +28,7 @@ dependencies:
 
   # UI
   percent_indicator: ^4.2.3
+  lottie: ^3.1.0
 
   # Routing
   go_router: ^14.2.0
@@ -91,6 +92,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/icons/
+    - assets/animations/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

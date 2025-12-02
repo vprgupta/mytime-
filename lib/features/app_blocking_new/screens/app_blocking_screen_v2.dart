@@ -2,11 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:lottie/lottie.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/modern_card.dart';
 import '../../../core/widgets/gradient_button.dart';
 import '../providers/app_blocking_provider_v2.dart';
 import 'app_selection_screen_v2.dart';
+import 'scheduler_screen.dart';
 import 'permission_setup_screen_v2.dart';
 import '../../app_blocking/screens/app_usage_limiter_screen.dart'; // Import legacy limiter screen
 
@@ -392,13 +394,13 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
       children: [
         Expanded(
           child: _buildActionCard(
-            icon: Icons.flash_on,
-            label: 'Quick Block',
+            icon: Icons.calendar_month,
+            label: 'Block Scheduler',
             color: AppColors.primaryBlue,
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const AppSelectionScreenV2(isQuickMode: true)),
+                MaterialPageRoute(builder: (_) => const SchedulerScreen()),
               );
             },
           ),
@@ -459,11 +461,21 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
           padding: const EdgeInsets.all(32),
           child: Column(
             children: [
-              Icon(Icons.check_circle_outline, size: 48, color: AppColors.textSecondary.withValues(alpha:0.3)),
+              Lottie.asset(
+                'assets/animations/empty_box.json',
+                width: 200,
+                height: 200,
+                fit: BoxFit.contain,
+              ),
               const SizedBox(height: 16),
               const Text(
                 'All clear! No apps blocked.',
-                style: TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Tap "Quick Block" to start focusing.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
               ),
             ],
           ),

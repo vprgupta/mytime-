@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/gradient_button.dart';
 import '../../../core/widgets/modern_card.dart';
@@ -122,11 +123,18 @@ class _PermissionSetupScreenV2State extends State<PermissionSetupScreenV2> {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(
-              isGranted ? Icons.check_circle : Icons.error_outline,
-              color: isGranted ? AppColors.successGreen : AppColors.warningOrange,
-              size: 32,
-            ),
+            isGranted 
+                ? Lottie.asset(
+                    'assets/animations/checked.json',
+                    width: 40,
+                    height: 40,
+                    repeat: false,
+                  )
+                : Icon(
+                    Icons.error_outline,
+                    color: AppColors.warningOrange,
+                    size: 32,
+                  ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(

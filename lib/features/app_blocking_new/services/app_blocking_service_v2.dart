@@ -310,13 +310,18 @@ class AppBlockingServiceV2 {
     // COMMITMENT MODE CHECK
     final existing = _schedulesBox.get(schedule.packageName);
     if (existing != null) {
+       bool isCommitmentActive = false;
        try {
          final result = await _channel.invokeMethod('getCommitmentStatus');
          if (result is Map && result['isActive'] == true) {
-            throw Exception('Cannot modify schedules while Commitment Mode is active.');
+            isCommitmentActive = true;
          }
        } catch (e) {
-         // Ignore
+         // Ignore platform errors
+       }
+       
+       if (isCommitmentActive) {
+          throw Exception('Cannot modify schedules while Commitment Mode is active.');
        }
     }
 
@@ -332,12 +337,19 @@ class AppBlockingServiceV2 {
     if (!_schedulesBox.isOpen) await _initSchedules();
 
     // COMMITMENT MODE CHECK
+    bool isCommitmentActive = false;
     try {
        final result = await _channel.invokeMethod('getCommitmentStatus');
        if (result is Map && result['isActive'] == true) {
-          throw Exception('Cannot delete schedules while Commitment Mode is active.');
+          isCommitmentActive = true;
        }
-    } catch (e) {}
+    } catch (e) {
+      // Ignore platform errors
+    }
+
+    if (isCommitmentActive) {
+       throw Exception('Cannot delete schedules while Commitment Mode is active.');
+    }
 
     await _schedulesBox.delete(packageName);
     

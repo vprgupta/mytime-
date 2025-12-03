@@ -423,7 +423,18 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         isProcessing.set(false)
     }
     
+    private var lastBlockTriggerTime = 0L
+
     fun triggerGlobalActionHome(immediate: Boolean = false) {
+        // Prevent double-triggering (debounce)
+        // When user clicks "Close" on overlay, the underlying app might trigger an event
+        // before the Home intent takes over. We ignore these events for 2 seconds.
+        val now = System.currentTimeMillis()
+        if (now - lastBlockTriggerTime < 2000) {
+            return
+        }
+        lastBlockTriggerTime = now
+
         // 1. Show overlay immediately to visually block interaction
         showBlockedOverlay()
         

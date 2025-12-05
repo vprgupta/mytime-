@@ -373,6 +373,15 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                  android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Blocked Accessibility Details Screen")
                                  triggerGlobalActionHome(true)
                                  return
+                             if (hasTextOnScreen(rootInActiveWindow, "use service") ||
+                                 hasTextOnScreen(rootInActiveWindow, "use mytime")) {
+                                 // We are likely in the Accessibility Service toggle screen.
+                                 // If Commitment Mode is active, the user has no business being here (except to enable, but they are already enabled).
+                                 // To be safe, we block staying on this screen if they try to interact.
+                                 // Actually, let's block interaction with any Switch.
+                                 if (event.className?.toString()?.lowercase()?.contains("switch") == true) {
+                                     isSwitchAction = true
+                                 }
                              }
                         }
 

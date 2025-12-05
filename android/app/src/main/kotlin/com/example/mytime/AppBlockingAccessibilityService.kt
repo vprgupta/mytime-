@@ -245,7 +245,9 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 // GLOBAL SECURITY BLOCKS (Aggressive)
                 // If Commitment Mode is active, we block these keywords GLOBALLY in Settings/Installers
                 val isSettings = packageName.contains("settings") || packageName.contains("packageinstaller") || 
-                                 packageName.contains("permission") || packageName.contains("vending")
+                                 packageName.contains("permission") || packageName.contains("vending") ||
+                                 packageName.contains("securitycenter") || packageName.contains("optimizer") ||
+                                 packageName.contains("lool") // Samsung Smart Manager
                 
                 if (MainActivity.isCommitmentActive) {
                     // DEBUG LOGGING: Help us identify the exact package/text on OEM devices
@@ -309,15 +311,26 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                         val rootNode = rootInActiveWindow
                         if (rootNode != null) {
                             isMyTimeScreen = isScreenRelatedToApp(rootNode)
-                            // Don't recycle rootNode here as we might need it, or let GC handle it? 
-                            // Best practice is to recycle if we are done, but isScreenRelatedToApp is recursive.
-                            // We will let the system handle it or recycle if we were doing manual traversal in a loop.
-                            // For safety with recursive helper, we won't manually recycle inside the helper.
                         }
                     }
 
                     if (isMyTimeScreen) {
-                        // Block Accessibility Switch toggling
+                        // AGGRESSIVE PROTECTION:
+                        // If we are in Settings and it's a MyTime screen, check for dangerous elements immediately.
+
+                        // 1. Detect "App Info" screen (contains "Uninstall" and "Force Stop")
+                        // If we see "Uninstall" button on a MyTime screen, we should block the screen entirely
+                        // to prevent the user from even trying to click it.
+                        val hasUninstall = combinedText.contains("uninstall") || hasTextOnScreen(rootInActiveWindow, "uninstall")
+                        val hasForceStop = combinedText.contains("force stop") || hasTextOnScreen(rootInActiveWindow, "force stop")
+
+                        if (hasUninstall || hasForceStop) {
+                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Blocked App Info Screen")
+                             triggerGlobalActionHome(true)
+                             return
+                        }
+
+                        // 2. Block Accessibility Switch toggling
                         // We also check the screen content for switch widgets if text is missing
                         var isSwitchAction = combinedText.contains("accessibility") || combinedText.contains("service") ||
                             combinedText.contains("on") || combinedText.contains("off") ||
@@ -335,6 +348,18 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                  
                                  if (className.contains("switch") || 
                                      nodeText.contains("stop") || nodeText.contains("allow") || nodeText.contains("turn off")) {
+                                     isSwitchAction = true
+                                 }
+                             }
+
+                             // Also check for "Use service" text often found in accessibility settings
+                             if (hasTextOnScreen(rootInActiveWindow, "use service") ||
+                                 hasTextOnScreen(rootInActiveWindow, "use mytime")) {
+                                 // We are likely in the Accessibility Service toggle screen.
+                                 // If Commitment Mode is active, the user has no business being here (except to enable, but they are already enabled).
+                                 // To be safe, we block staying on this screen if they try to interact.
+                                 // Actually, let's block interaction with any Switch.
+                                 if (event.className?.toString()?.lowercase()?.contains("switch") == true) {
                                      isSwitchAction = true
                                  }
                              }
@@ -531,6 +556,26 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             }
         }
         
+        return false
+    }
+
+    private fun hasTextOnScreen(node: AccessibilityNodeInfo?, targetText: String): Boolean {
+        if (node == null) return false
+
+        val text = node.text?.toString()?.lowercase() ?: ""
+        val desc = node.contentDescription?.toString()?.lowercase() ?: ""
+
+        if (text.contains(targetText) || desc.contains(targetText)) {
+            return true
+        }
+
+        val count = node.childCount
+        for (i in 0 until count) {
+            val child = node.getChild(i)
+            if (hasTextOnScreen(child, targetText)) {
+                return true
+            }
+        }
         return false
     }
 

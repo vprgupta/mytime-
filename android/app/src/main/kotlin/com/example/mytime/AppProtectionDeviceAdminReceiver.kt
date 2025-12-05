@@ -18,6 +18,10 @@ class AppProtectionDeviceAdminReceiver : DeviceAdminReceiver() {
     }
     
     override fun onDisableRequested(context: Context, intent: Intent): CharSequence {
+        val commitmentManager = CommitmentModeManager(context)
+        if (commitmentManager.isCommitmentActive()) {
+            return "⚠️ COMMITMENT ACTIVE ⚠️\n\nYou cannot disable this while a commitment is active. Your device may lock or restart if you proceed."
+        }
         return "Disabling app protection will allow bypassing app blocking. Continue?"
     }
 }

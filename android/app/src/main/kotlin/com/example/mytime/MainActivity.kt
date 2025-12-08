@@ -59,6 +59,7 @@ class MainActivity : FlutterActivity() {
        
         // Handle blocked app intent
         handleBlockedAppIntent()
+
                 // Start commitment monitoring and protection ONLY if commitment is active
         if (commitmentManager.isCommitmentActive()) {
             isCommitmentActive = true
@@ -985,9 +986,26 @@ class MainActivity : FlutterActivity() {
         registerReceiver(packageReceiver, filter)
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Critical: Check if commitment has expired every time app sends to foreground
+        // This ensures Admin rights are removed immediately when user opens app after expiry
+        try {
+            if (::commitmentManager.isInitialized) {
+                 commitmentManager.clearIfExpired()
+            }
+        } catch (e: Exception) {
+            // Ignore init errors
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         instance = null
-        unregisterReceiver(packageReceiver)
+        try {
+            unregisterReceiver(packageReceiver)
+        } catch (e: Exception) {
+            // Ignore
+        }
     }
 }

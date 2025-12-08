@@ -184,6 +184,13 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             return
         }
         
+        // CRITICAL: Process ALL click events immediately (no debounce)
+        // This ensures we catch button taps in real-time
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+            processEvent(event)
+            return
+        }
+        
         // For other apps (Usage Tracking), use debounce to save battery
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
@@ -200,6 +207,11 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     private fun processEvent(event: AccessibilityEvent) {
         try {
             val packageName = event.packageName?.toString() ?: return
+            
+            // 0. WHITELIST: Never block MyTime itself
+            if (packageName == "com.example.mytime") {
+                return
+            }
             
             // 1. Check if this is a blocked app (Manual Block)
             if (MainActivity.blockedPackages.contains(packageName)) {
@@ -237,7 +249,54 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             }
             
             // 2. Security Hardening: Block "Clear Data", "Disable Service", and "Uninstall"
+            // We double check commitment state here to be safe
+            if (!MainActivity.isCommitmentActive) {
+                // Fallback check in case MainActivity was killed
+                try {
+                    val commitmentManager = CommitmentModeManager(applicationContext)
+                    if (commitmentManager.isCommitmentActive()) {
+                        MainActivity.isCommitmentActive = true
+                    }
+                } catch (e: Exception) {
+                    // Ignore
+                }
+            }
+
             if (MainActivity.isCommitmentActive) {
+                // PRIORITY 1: Detect CLICK events on uninstall-related buttons
+                // This catches the moment the user taps "Uninstall" or "Deactivate"
+                if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+                    val clickedNode = event.source
+                    if (clickedNode != null) {
+                        val viewId = clickedNode.viewIdResourceName?.lowercase() ?: ""
+                        val text = clickedNode.text?.toString()?.lowercase() ?: ""
+                        val desc = clickedNode.contentDescription?.toString()?.lowercase() ?: ""
+                        val className = clickedNode.className?.toString() ?: ""
+                        
+                        android.util.Log.d("AccessibilityService", "🖱️ CLICK: id=$viewId, text=$text, desc=$desc, class=$className")
+                        
+                        // Detect uninstall button clicks by ID or text
+                        val isUninstallClick = viewId.contains("uninstall") || 
+                                              viewId.contains("delete") ||
+                                              text.contains("uninstall") || 
+                                              text.contains("remove") ||
+                                              text.contains("delete") ||
+                                              desc.contains("uninstall")
+                        
+                        // Detect deactivate admin button clicks
+                        val isDeactivateClick = viewId.contains("deactivate") ||
+                                               text.contains("deactivate") ||
+                                               text.contains("remove admin") ||
+                                               desc.contains("deactivate")
+                        
+                        if (isUninstallClick || isDeactivateClick) {
+                            android.util.Log.d("AccessibilityService", "🛡️ BLOCKED CLICK: Uninstall/Deactivate button detected!")
+                            triggerGlobalActionHome(true)
+                            return
+                        }
+                    }
+                }
+                
                 val text = event.text?.toString()?.lowercase() ?: ""
                 val contentDescription = event.contentDescription?.toString()?.lowercase() ?: ""
                 val combinedText = "$text $contentDescription"
@@ -251,7 +310,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     // DEBUG LOGGING: Help us identify the exact package/text on OEM devices
                     android.util.Log.d("AccessibilityService", "🔍 Event: pkg=$packageName, text=$combinedText")
                 
-                    if (isSettings) {
+                if (isSettings) {
                         // 0. WHITELIST: Allow PIN/Password/Biometric screens
                         // This prevents false positives when accessing Hidden Folders, Private Safe, etc.
                         if (combinedText.contains("enter pin") || combinedText.contains("enter password") ||
@@ -263,20 +322,35 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                         }
 
                         // 1. Block Uninstall attempts
-                        // Removed generic "delete" to avoid false positives
-                        if (combinedText.contains("uninstall") || combinedText.contains("remove app")) {
+                        // Added "delete" and "ok" (often in confirmation dialogs) to be more aggressive
+                        if (combinedText.contains("uninstall") || combinedText.contains("remove app") || 
+                            (combinedText.contains("delete") && !combinedText.contains("delete account")) || // Avoid blocking account deletion if possible
+                            (combinedText.contains("ok") && packageName.contains("packageinstaller"))) { // Common uninstallation confirmation
                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Uninstall action")
                             triggerGlobalActionHome(true) // Immediate block
                             return
                         }
                         
                         // 2. Block Admin Deactivation / Tampering
-                        // Removed generic "disable" to avoid false positives
-                        if (combinedText.contains("deactivate") || combinedText.contains("remove admin") || 
-                            combinedText.contains("device admin")) {
-                            android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Admin Tampering")
-                            triggerGlobalActionHome(true) // Immediate block
-                            return
+                        // Aggressively block ANY access to Device Admin settings for MyTime
+                        if (combinedText.contains("device admin") || combinedText.contains("device policy") ||
+                            combinedText.contains("admin app")) {
+                            
+                            // Block the "Activate device admin apps?" dialog entirely
+                            if (combinedText.contains("activate") || combinedText.contains("deactivate") ||
+                                combinedText.contains("this feature grants") || combinedText.contains("security risks")) {
+                                android.util.Log.d("AccessibilityService", "🛡️ BLOCKED: Device Admin activation/deactivation dialog")
+                                triggerGlobalActionHome(true)
+                                return
+                            }
+                            
+                            // If it mentions MyTime, or if we are on the specific "Activate/Deactivate" screen
+                            if (combinedText.contains("mytime") || combinedText.contains("mytask") ||
+                                combinedText.contains("remove")) {
+                                android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Admin Access/Tampering")
+                                triggerGlobalActionHome(true) // Immediate block
+                                return
+                            }
                         }
                         
                         // Refined Verification Code check (only if related to admin/mytime)
@@ -299,50 +373,65 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 }
 
                 // SPECIFIC SETTINGS PROTECTION (Enhanced with rootInActiveWindow)
-                if (isSettings) {
+                if (isSettings || packageName == "com.android.settings") {
+                     // 0. Auto-Clear if Expired (Service-side check)
+                    // This ensures that if the user is in Settings when time expires, 
+                    // the Admin is removed immediately without needing to open the app.
+                    try {
+                        val manager = CommitmentModeManager(applicationContext)
+                        manager.clearIfExpired()
+                        // If we just cleared it, update our local flag
+                        if (!manager.isCommitmentActive()) {
+                            MainActivity.isCommitmentActive = false
+                            return // Stop processing, let user do what they want
+                        }
+                    } catch (e: Exception) {
+                        // Ignore
+                    }
+
                     // Check if we are in a MyTime-related screen
                     // We check both the event text AND the actual screen content for robustness
-                    var isMyTimeScreen = combinedText.contains("mytime") || combinedText.contains("mytask")
+                    var isMyTimeScreen = combinedText.contains("mytime") || combinedText.contains("mytask") || 
+                                         combinedText.contains("my time") || combinedText.contains("my task")
+                    
+                    // Specific check for Accessibility Settings for MyTime
+                    // This often appears as "MyTime" in the list or "MyTime" in the title
                     
                     // If event text doesn't have it (e.g. resume from background), check the window content
                     if (!isMyTimeScreen) {
                         val rootNode = rootInActiveWindow
                         if (rootNode != null) {
                             isMyTimeScreen = isScreenRelatedToApp(rootNode)
-                            // Don't recycle rootNode here as we might need it, or let GC handle it? 
-                            // Best practice is to recycle if we are done, but isScreenRelatedToApp is recursive.
-                            // We will let the system handle it or recycle if we were doing manual traversal in a loop.
-                            // For safety with recursive helper, we won't manually recycle inside the helper.
                         }
                     }
 
                     if (isMyTimeScreen) {
-                        // Block Accessibility Switch toggling
-                        // We also check the screen content for switch widgets if text is missing
-                        var isSwitchAction = combinedText.contains("accessibility") || combinedText.contains("service") ||
-                            combinedText.contains("on") || combinedText.contains("off") ||
-                            combinedText.contains("switch") || combinedText.contains("checked") || 
-                            combinedText.contains("stop") // "Stop MyTime?" dialog
-                            
-                        if (!isSwitchAction) {
-                             // If we know it's MyTime screen, any click on a switch or "Stop" button is suspicious
-                             // We can be more aggressive here.
-                             // Let's check if the event source is a switch or button with "Stop"
-                             val source = event.source
-                             if (source != null) {
-                                 val className = source.className?.toString()?.lowercase() ?: ""
-                                 val nodeText = source.text?.toString()?.lowercase() ?: ""
-                                 
-                                 if (className.contains("switch") || 
-                                     nodeText.contains("stop") || nodeText.contains("allow") || nodeText.contains("turn off")) {
-                                     isSwitchAction = true
-                                 }
-                             }
+                        // AGGRESSIVE BLOCK: If we are in the MyTime settings screen, BLOCK IMMEDIATELY.
+                        // Do not wait for them to try to click the switch.
+                        // This prevents the user from even seeing the toggle.
+                        android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Aggressive Block - Prevented access to MyTime Settings")
+                        triggerGlobalActionHome(true) // Immediate block
+                        return
+                    }
+                    
+                    // EXTRA AGGRESSIVE: Block "App Info" screen for MyTime
+                    // If we see "App info" or indicators of the App Management screen AND "MyTime", block it.
+                    // This prevents reaching the Uninstall/Force Stop buttons.
+                    if (combinedText.contains("app info") || combinedText.contains("application info") ||
+                        (combinedText.contains("storage") && combinedText.contains("cache")) || // Common on App Info
+                         combinedText.contains("force stop")) {
+                             
+                        if (isMyTimeScreen) {
+                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Blocked MyTime App Info Screen")
+                             triggerGlobalActionHome(true)
+                             return
                         }
-
-                        if (isSwitchAction) {
-                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Accessibility tampering (Deep Check)")
-                             triggerGlobalActionHome(true) // Immediate block
+                        
+                        // Deep check for MyTime in window if not found in text
+                        val rootNode = rootInActiveWindow
+                        if (rootNode != null && isScreenRelatedToApp(rootNode)) {
+                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Blocked MyTime App Info Screen (Deep Check)")
+                             triggerGlobalActionHome(true)
                              return
                         }
                     }
@@ -427,20 +516,23 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
     fun triggerGlobalActionHome(immediate: Boolean = false) {
         // Prevent double-triggering (debounce)
-        // When user clicks "Close" on overlay, the underlying app might trigger an event
-        // before the Home intent takes over. We ignore these events for 2 seconds.
         val now = System.currentTimeMillis()
         if (now - lastBlockTriggerTime < 2000) {
             return
         }
         lastBlockTriggerTime = now
 
-        // 1. Show overlay immediately to visually block interaction
-        showBlockedOverlay()
+        // CRITICAL: Perform the home action IMMEDIATELY
+        // This kicks the user out of the current screen
+        try {
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            android.util.Log.d("AccessibilityService", "✅ Performed GLOBAL_ACTION_HOME")
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to perform home action: ${e.message}")
+        }
         
-        // Note: We no longer automatically kick to home or hide the overlay.
-        // The overlay is now persistent and must be dismissed by the user via the "Close" button,
-        // which will then navigate to Home.
+        // THEN show overlay as visual feedback
+        showBlockedOverlay()
     }
     
     private fun showBlockedOverlay() {
@@ -518,7 +610,9 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         val desc = node.contentDescription?.toString()?.lowercase() ?: ""
         
         if (text.contains("mytime") || text.contains("mytask") || 
-            desc.contains("mytime") || desc.contains("mytask")) {
+            text.contains("my time") || text.contains("my task") ||
+            desc.contains("mytime") || desc.contains("mytask") ||
+            desc.contains("my time") || desc.contains("my task")) {
             return true
         }
         
@@ -531,6 +625,27 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             }
         }
         
+        return false
+    }
+
+    private fun scanWindowForKeywords(node: AccessibilityNodeInfo?, keywords: List<String>): Boolean {
+        if (node == null) return false
+        
+        val text = node.text?.toString()?.lowercase() ?: ""
+        val desc = node.contentDescription?.toString()?.lowercase() ?: ""
+        
+        for (keyword in keywords) {
+            if (text.contains(keyword) || desc.contains(keyword)) {
+                return true
+            }
+        }
+        
+        val count = node.childCount
+        for (i in 0 until count) {
+            if (scanWindowForKeywords(node.getChild(i), keywords)) {
+                return true
+            }
+        }
         return false
     }
 

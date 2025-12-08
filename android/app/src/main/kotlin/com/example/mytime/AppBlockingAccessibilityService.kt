@@ -301,139 +301,104 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 val contentDescription = event.contentDescription?.toString()?.lowercase() ?: ""
                 val combinedText = "$text $contentDescription"
                 
-                // GLOBAL SECURITY BLOCKS (Aggressive)
-                // If Commitment Mode is active, we block these keywords GLOBALLY in Settings/Installers
+                // SURGICAL BLOCKING: Only block MyTime-specific actions
+                // Allow everything else (other apps, general settings, etc.)
+                
                 val isSettings = packageName.contains("settings") || packageName.contains("packageinstaller") || 
                                  packageName.contains("permission") || packageName.contains("vending")
                 
-                if (MainActivity.isCommitmentActive) {
-                    // DEBUG LOGGING: Help us identify the exact package/text on OEM devices
-                    android.util.Log.d("AccessibilityService", "🔍 Event: pkg=$packageName, text=$combinedText")
-                
-                if (isSettings) {
-                        // 0. WHITELIST: Allow PIN/Password/Biometric screens
-                        // This prevents false positives when accessing Hidden Folders, Private Safe, etc.
-                        if (combinedText.contains("enter pin") || combinedText.contains("enter password") ||
-                            combinedText.contains("unlock") || combinedText.contains("fingerprint") ||
-                            combinedText.contains("face id") || combinedText.contains("confirm pin") ||
-                            combinedText.contains("verify identity")) {
-                            android.util.Log.d("AccessibilityService", "✅ Allowed PIN/Password screen")
-                            return
-                        }
-
-                        // 1. Block Uninstall attempts
-                        // Added "delete" and "ok" (often in confirmation dialogs) to be more aggressive
-                        if (combinedText.contains("uninstall") || combinedText.contains("remove app") || 
-                            (combinedText.contains("delete") && !combinedText.contains("delete account")) || // Avoid blocking account deletion if possible
-                            (combinedText.contains("ok") && packageName.contains("packageinstaller"))) { // Common uninstallation confirmation
-                            android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Uninstall action")
-                            triggerGlobalActionHome(true) // Immediate block
-                            return
-                        }
-                        
-                        // 2. Block Admin Deactivation / Tampering
-                        // Aggressively block ANY access to Device Admin settings for MyTime
-                        if (combinedText.contains("device admin") || combinedText.contains("device policy") ||
-                            combinedText.contains("admin app")) {
-                            
-                            // Block the "Activate device admin apps?" dialog entirely
-                            if (combinedText.contains("activate") || combinedText.contains("deactivate") ||
-                                combinedText.contains("this feature grants") || combinedText.contains("security risks")) {
-                                android.util.Log.d("AccessibilityService", "🛡️ BLOCKED: Device Admin activation/deactivation dialog")
-                                triggerGlobalActionHome(true)
-                                return
-                            }
-                            
-                            // If it mentions MyTime, or if we are on the specific "Activate/Deactivate" screen
-                            if (combinedText.contains("mytime") || combinedText.contains("mytask") ||
-                                combinedText.contains("remove")) {
-                                android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Admin Access/Tampering")
-                                triggerGlobalActionHome(true) // Immediate block
-                                return
-                            }
-                        }
-                        
-                        // Refined Verification Code check (only if related to admin/mytime)
-                        if (combinedText.contains("verification code") || combinedText.contains("captcha")) {
-                             if (combinedText.contains("admin") || combinedText.contains("mytime")) {
-                                 android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Verification Code")
-                                 triggerGlobalActionHome(true)
-                                 return
-                             }
-                        }
-                        
-                        // 3. Block Force Stop / Clear Data
-                        if (combinedText.contains("force stop") || combinedText.contains("clear storage") || 
-                            combinedText.contains("clear data") || combinedText.contains("clear cache")) {
-                            android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Prevented Force Stop/Clear Data")
-                            triggerGlobalActionHome(true) // Immediate block
-                            return
-                        }
-                    }
-                }
-
-                // SPECIFIC SETTINGS PROTECTION (Enhanced with rootInActiveWindow)
-                if (isSettings || packageName == "com.android.settings") {
-                     // 0. Auto-Clear if Expired (Service-side check)
-                    // This ensures that if the user is in Settings when time expires, 
-                    // the Admin is removed immediately without needing to open the app.
+                if (MainActivity.isCommitmentActive && isSettings) {
+                    // Auto-clear if expired
                     try {
                         val manager = CommitmentModeManager(applicationContext)
                         manager.clearIfExpired()
-                        // If we just cleared it, update our local flag
                         if (!manager.isCommitmentActive()) {
                             MainActivity.isCommitmentActive = false
-                            return // Stop processing, let user do what they want
+                            return // Commitment expired, allow everything
                         }
                     } catch (e: Exception) {
                         // Ignore
                     }
-
-                    // Check if we are in a MyTime-related screen
-                    // We check both the event text AND the actual screen content for robustness
+                    
+                    // STEP 1: Check if this screen is related to MyTime
                     var isMyTimeScreen = combinedText.contains("mytime") || combinedText.contains("mytask") || 
-                                         combinedText.contains("my time") || combinedText.contains("my task")
+                                         combinedText.contains("my time") || combinedText.contains("my task") ||
+                                         combinedText.contains("com.example.mytime")
                     
-                    // Specific check for Accessibility Settings for MyTime
-                    // This often appears as "MyTime" in the list or "MyTime" in the title
-                    
-                    // If event text doesn't have it (e.g. resume from background), check the window content
+                    // If not found in text, scan the window content
                     if (!isMyTimeScreen) {
                         val rootNode = rootInActiveWindow
                         if (rootNode != null) {
                             isMyTimeScreen = isScreenRelatedToApp(rootNode)
                         }
                     }
-
-                    if (isMyTimeScreen) {
-                        // AGGRESSIVE BLOCK: If we are in the MyTime settings screen, BLOCK IMMEDIATELY.
-                        // Do not wait for them to try to click the switch.
-                        // This prevents the user from even seeing the toggle.
-                        android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Aggressive Block - Prevented access to MyTime Settings")
-                        triggerGlobalActionHome(true) // Immediate block
-                        return
-                    }
                     
-                    // EXTRA AGGRESSIVE: Block "App Info" screen for MyTime
-                    // If we see "App info" or indicators of the App Management screen AND "MyTime", block it.
-                    // This prevents reaching the Uninstall/Force Stop buttons.
-                    if (combinedText.contains("app info") || combinedText.contains("application info") ||
-                        (combinedText.contains("storage") && combinedText.contains("cache")) || // Common on App Info
-                         combinedText.contains("force stop")) {
-                             
-                        if (isMyTimeScreen) {
-                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Blocked MyTime App Info Screen")
-                             triggerGlobalActionHome(true)
-                             return
+                    // STEP 2: Only block if it's MyTime-related
+                    if (isMyTimeScreen) {
+                        android.util.Log.d("AccessibilityService", "🔍 MyTime screen detected: $combinedText")
+                        
+                        // Block 1: Accessibility Settings for MyTime
+                        // Detect accessibility screens by multiple indicators:
+                        // - Contains "accessibility"
+                        // - Contains "service" (accessibility service)
+                        // - Contains toggle/switch indicators
+                        // - Contains "turn off" or "disable" (toggle dialog)
+                        // - Contains "keep on" (confirmation dialog)
+                        // - Is in accessibility settings package
+                        val isAccessibilityScreen = combinedText.contains("accessibility") ||
+                                                   combinedText.contains("service") ||
+                                                   combinedText.contains("switch") ||
+                                                   combinedText.contains("toggle") ||
+                                                   combinedText.contains("turn off") ||
+                                                   combinedText.contains("turn on") ||
+                                                   combinedText.contains("disable") ||
+                                                   combinedText.contains("enable") ||
+                                                   combinedText.contains("keep on") ||
+                                                   combinedText.contains("keep off") ||
+                                                   packageName.contains("accessibility")
+                        
+                        if (isAccessibilityScreen) {
+                            android.util.Log.d("AccessibilityService", "🛡️ Blocked: MyTime Accessibility Settings")
+                            triggerGlobalActionHome(true)
+                            return
                         }
                         
-                        // Deep check for MyTime in window if not found in text
-                        val rootNode = rootInActiveWindow
-                        if (rootNode != null && isScreenRelatedToApp(rootNode)) {
-                             android.util.Log.d("AccessibilityService", "🛡️ Commitment Mode: Blocked MyTime App Info Screen (Deep Check)")
-                             triggerGlobalActionHome(true)
-                             return
+                        // Block 2: App Info / Uninstall for MyTime
+                        if (combinedText.contains("app info") || 
+                            combinedText.contains("application info") ||
+                            combinedText.contains("uninstall") ||
+                            combinedText.contains("force stop") ||
+                            combinedText.contains("clear data") ||
+                            combinedText.contains("clear storage")) {
+                            android.util.Log.d("AccessibilityService", "🛡️ Blocked: MyTime App Info/Uninstall")
+                            triggerGlobalActionHome(true)
+                            return
                         }
+                        
+                        // Block 3: Device Admin for MyTime
+                        if (combinedText.contains("device admin") || 
+                            combinedText.contains("device policy") ||
+                            combinedText.contains("admin app") ||
+                            combinedText.contains("deactivate") ||
+                            combinedText.contains("activate")) {
+                            android.util.Log.d("AccessibilityService", "🛡️ Blocked: MyTime Device Admin")
+                            triggerGlobalActionHome(true)
+                            return
+                        }
+                        
+                        // Block 4: Package Installer for MyTime
+                        if (packageName.contains("packageinstaller")) {
+                            android.util.Log.d("AccessibilityService", "🛡️ Blocked: MyTime Uninstall Dialog")
+                            triggerGlobalActionHome(true)
+                            return
+                        }
+                        
+                        // If MyTime screen but no dangerous action, allow it
+                        android.util.Log.d("AccessibilityService", "✅ MyTime screen but safe action, allowing")
+                    }
+                    // If not MyTime-related, ALLOW (do nothing, let it proceed)
+                    else {
+                        android.util.Log.d("AccessibilityService", "✅ Allowed: Not MyTime-related ($packageName)")
                     }
                 }
             }

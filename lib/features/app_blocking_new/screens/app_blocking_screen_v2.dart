@@ -203,16 +203,13 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
         const SizedBox(height: 12),
         _buildQuickActions(context),
         const SizedBox(height: 24),
-        const Text(
-          'Active Blocks',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _buildActiveBlocksList(provider),
+        
+        // Scheduler Section
+        _buildSchedulerSection(provider),
+        const SizedBox(height: 16),
+        
+        // Strict Mode Section
+        _buildStrictModeSection(provider),
       ],
     );
   }
@@ -454,6 +451,206 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
     );
   }
 
+  Widget _buildSchedulerSection(AppBlockingProviderV2 provider) {
+    // Get ALL apps that have schedules (not just active sessions)
+    final allSchedules = provider.getSchedules();
+    final scheduledApps = allSchedules.where((schedule) => schedule.isEnabled).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.calendar_month, color: AppColors.primaryBlue, size: 20),
+            const SizedBox(width: 8),
+            const Text(
+              'Scheduler',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${scheduledApps.length} apps',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        
+        if (scheduledApps.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border.withValues(alpha: 0.3)),
+            ),
+            child: const Center(
+              child: Text(
+                'No scheduled blocks configured',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: scheduledApps.length,
+            itemBuilder: (context, index) {
+              final schedule = scheduledApps[index];
+              final appInfo = provider.getAppInfo(schedule.packageName);
+              final isCurrentlyBlocked = provider.isAppBlocked(schedule.packageName);
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ModernCard(
+                  child: ListTile(
+                    leading: appInfo != null && appInfo.icon != null
+                        ? Image.memory(appInfo.icon!, width: 40, height: 40)
+                        : const Icon(Icons.apps, color: AppColors.primaryBlue, size: 40),
+                    title: Text(
+                      appInfo?.name ?? schedule.packageName,
+                      style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Schedule: ${_formatTime(schedule.startHour, schedule.startMinute)} - ${_formatTime(schedule.endHour, schedule.endMinute)}',
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        ),
+                        if (isCurrentlyBlocked)
+                          const Text(
+                            '🔒 Currently blocked',
+                            style: TextStyle(color: AppColors.dangerRed, fontSize: 11),
+                          ),
+                      ],
+                    ),
+                    trailing: Icon(
+                      isCurrentlyBlocked ? Icons.lock : Icons.schedule,
+                      color: isCurrentlyBlocked ? AppColors.dangerRed : AppColors.primaryBlue,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildStrictModeSection(AppBlockingProviderV2 provider) {
+    // Get apps that DON'T have schedules (blocked by commitment/strict mode)
+    final strictModeApps = provider.activeSessions.where((session) {
+      final schedule = provider.getSchedule(session.appPackage);
+      return schedule == null || !schedule.isEnabled;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.security, color: AppColors.dangerRed, size: 20),
+            const SizedBox(width: 8),
+            const Text(
+              'Strict Mode',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Spacer(),
+            if (_isProtectionActive)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.dangerRed.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.dangerRed.withValues(alpha: 0.3)),
+                ),
+                child: const Text(
+                  'ACTIVE',
+                  style: TextStyle(
+                    color: AppColors.dangerRed,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        
+        if (strictModeApps.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border.withValues(alpha: 0.3)),
+            ),
+            child: const Center(
+              child: Text(
+                'No apps in strict mode',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: strictModeApps.length,
+            itemBuilder: (context, index) {
+              final session = strictModeApps[index];
+              final appInfo = provider.getAppInfo(session.appPackage);
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ModernCard(
+                  child: ListTile(
+                    leading: appInfo != null && appInfo.icon != null
+                        ? Image.memory(appInfo.icon!, width: 40, height: 40)
+                        : const Icon(Icons.block, color: AppColors.dangerRed, size: 40),
+                    title: Text(
+                      appInfo?.name ?? session.appPackage,
+                      style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      'Blocked until ${_formatDateTime(session.endTime)}',
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.lock, color: AppColors.dangerRed, size: 20),
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  String _formatTime(int hour, int minute) {
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return '${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final hour = dateTime.hour;
+    final minute = dateTime.minute;
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return '${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+  }
+
   Widget _buildActiveBlocksList(AppBlockingProviderV2 provider) {
     if (provider.activeSessions.isEmpty) {
       return Center(
@@ -605,47 +802,8 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
   Future<void> _handleCommitmentToggle(bool value) async {
     if (value) {
       // User wants to enable Commitment Mode
-      
-      // 1. Check/Request Device Admin Permission
-      try {
-        const channel = MethodChannel('app_blocking');
-        
-        // Check current status
-        final permissions = await channel.invokeMethod<Map>('checkPermissions');
-        final hasAdmin = permissions?['deviceAdmin'] ?? false;
-        
-        if (!hasAdmin) {
-          // Request permission
-          await channel.invokeMethod('enableDeviceAdmin');
-          
-          // Wait for user to potentially grant it
-          await Future.delayed(const Duration(seconds: 1));
-          
-          // Check again
-          final updatedPermissions = await channel.invokeMethod<Map>('checkPermissions');
-          final grantedNow = updatedPermissions?['deviceAdmin'] ?? false;
-          
-          if (!grantedNow) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Device Admin permission is required for Commitment Mode.'),
-                  backgroundColor: AppColors.warningOrange,
-                ),
-              );
-            }
-            return;
-          }
-        }
-        
-        // 2. Permission granted, show duration picker
-        if (mounted) {
-          _showDurationPicker();
-        }
-        
-      } catch (e) {
-        // debugPrint('Error in toggle handler: $e');
-      }
+      // No need for Device Admin - accessibility protection is sufficient
+      _showDurationPicker();
     } else {
       // User wants to disable
       if (_isProtectionActive) {

@@ -156,6 +156,10 @@ class AppBlockingProviderV2 extends ChangeNotifier {
   
   // --- Scheduler ---
   
+  List<AppSchedule> getSchedules() {
+    return _service.getSchedules();
+  }
+  
   AppSchedule? getSchedule(String packageName) {
     try {
       return _service.getSchedules().firstWhere((s) => s.packageName == packageName);

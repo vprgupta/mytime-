@@ -304,8 +304,32 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 // SURGICAL BLOCKING: Only block MyTime-specific actions
                 // Allow everything else (other apps, general settings, etc.)
                 
-                val isSettings = packageName.contains("settings") || packageName.contains("packageinstaller") || 
-                                 packageName.contains("permission") || packageName.contains("vending")
+                // Expanded to cover ALL major Android manufacturers
+                val isSettings = packageName.contains("settings") || 
+                                 packageName.contains("packageinstaller") || 
+                                 packageName.contains("permission") || 
+                                 packageName.contains("vending") ||
+                                 // Samsung/OneUI
+                                 packageName.contains("samsung") ||
+                                 // Xiaomi/MIUI
+                                 packageName.contains("miui") ||
+                                 packageName.contains("securitycenter") ||
+                                 // OnePlus/ColorOS/Oppo
+                                 packageName.contains("coloros") ||
+                                 packageName.contains("safecenter") ||
+                                 packageName.contains("oneplus") ||
+                                 // Vivo/FuntouchOS
+                                 packageName.contains("vivo") ||
+                                 packageName.contains("iqoo") ||
+                                 // Realme/RealmeUI
+                                 packageName.contains("realme") ||
+                                 // Huawei/EMUI
+                                 packageName.contains("huawei") ||
+                                 packageName.contains("honor") ||
+                                 // Motorola
+                                 packageName.contains("motorola") ||
+                                 // Google Pixel
+                                 packageName.contains("google.android")
                 
                 if (MainActivity.isCommitmentActive && isSettings) {
                     // Auto-clear if expired
@@ -338,13 +362,12 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                         android.util.Log.d("AccessibilityService", "🔍 MyTime screen detected: $combinedText")
                         
                         // Block 1: Accessibility Settings for MyTime
-                        // Detect accessibility screens by multiple indicators:
-                        // - Contains "accessibility"
-                        // - Contains "service" (accessibility service)
-                        // - Contains toggle/switch indicators
-                        // - Contains "turn off" or "disable" (toggle dialog)
-                        // - Contains "keep on" (confirmation dialog)
-                        // - Is in accessibility settings package
+                        // Comprehensive detection across ALL manufacturers:
+                        // Stock Android: "accessibility", "service", "turn off"
+                        // Samsung: "deactivate", "stop using"
+                        // Xiaomi: "stop", "revoke"
+                        // OnePlus: "turn off", "disable"
+                        // Vivo/Oppo: "close", "shut down"
                         val isAccessibilityScreen = combinedText.contains("accessibility") ||
                                                    combinedText.contains("service") ||
                                                    combinedText.contains("switch") ||
@@ -355,6 +378,15 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                                    combinedText.contains("enable") ||
                                                    combinedText.contains("keep on") ||
                                                    combinedText.contains("keep off") ||
+                                                   combinedText.contains("deactivate") ||  // Samsung
+                                                   combinedText.contains("activate") ||
+                                                   combinedText.contains("stop") ||        // Xiaomi
+                                                   combinedText.contains("revoke") ||      // Xiaomi
+                                                   combinedText.contains("close") ||       // Vivo/Oppo
+                                                   combinedText.contains("shut down") ||   // Vivo/Oppo
+                                                   combinedText.contains("stop using") ||  // Samsung
+                                                   combinedText.contains("allowed") ||     // Permission screens
+                                                   combinedText.contains("permitted") ||
                                                    packageName.contains("accessibility")
                         
                         if (isAccessibilityScreen) {
@@ -364,12 +396,25 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                         }
                         
                         // Block 2: App Info / Uninstall for MyTime
+                        // Manufacturer variations:
+                        // Stock: "uninstall", "app info"
+                        // Samsung: "remove", "delete app"
+                        // Xiaomi: "delete", "remove app"
+                        // All: "force stop", "clear data"
                         if (combinedText.contains("app info") || 
                             combinedText.contains("application info") ||
+                            combinedText.contains("app details") ||      // Some OEMs
                             combinedText.contains("uninstall") ||
+                            combinedText.contains("remove") ||           // Samsung
+                            combinedText.contains("delete") ||           // Xiaomi
+                            combinedText.contains("delete app") ||
+                            combinedText.contains("remove app") ||
                             combinedText.contains("force stop") ||
+                            combinedText.contains("force close") ||      // Older Android
                             combinedText.contains("clear data") ||
-                            combinedText.contains("clear storage")) {
+                            combinedText.contains("clear storage") ||
+                            combinedText.contains("erase") ||            // Some OEMs
+                            combinedText.contains("wipe data")) {        // Some OEMs
                             android.util.Log.d("AccessibilityService", "🛡️ Blocked: MyTime App Info/Uninstall")
                             triggerGlobalActionHome(true)
                             return

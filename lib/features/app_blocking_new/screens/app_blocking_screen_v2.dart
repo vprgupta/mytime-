@@ -24,6 +24,8 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
   DateTime? _protectionLockEndTime;
   bool _isProtectionActive = false;
   Timer? _refreshTimer;
+  Timer? _commitmentTimer;
+  DateTime _currentTime = DateTime.now();
 
   @override
   void initState() {
@@ -37,8 +39,15 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (mounted) {
         _checkProtectionStatus();
-        // Also force UI rebuild to update countdown
-        setState(() {});
+      }
+    });
+    
+    // Update current time every second for live countdown
+    _commitmentTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentTime = DateTime.now();
+        });
       }
     });
   }
@@ -46,6 +55,7 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _commitmentTimer?.cancel();
     super.dispose();
   }
   
@@ -86,7 +96,14 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('App Control', style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text(
+          'App Control',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -101,50 +118,50 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return RefreshIndicator(
-            onRefresh: provider.refreshData,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. Permission Warning (Non-blocking)
-                  if (provider.hasPermissionIssues)
-                    _buildPermissionWarning(context, provider.missingPermissions),
+          return Column(
+            children: [
+              // Full-width segmented control
+              Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDark,
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(child: _buildModeButton(0, 'Focus Mode', Icons.shield)),
+                    const SizedBox(width: 4),
+                    Expanded(child: _buildModeButton(1, 'Usage Limiter', Icons.timer)),
+                  ],
+                ),
+              ),
+              
+              // Content
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: provider.refreshData,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Permission Warning (Non-blocking)
+                        if (provider.hasPermissionIssues)
+                          _buildPermissionWarning(context, provider.missingPermissions),
 
-                  const SizedBox(height: 8),
-
-                  // 2. Mode Toggle
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardDark,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border.withValues(alpha:0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildModeButton(0, 'Focus Mode', Icons.shield),
-                          const SizedBox(width: 8),
-                          _buildModeButton(1, 'Usage Limiter', Icons.timer),
-                        ],
-                      ),
+                        // Content based on mode
+                        if (_selectedMode == 0)
+                          _buildFocusMode(context, provider)
+                        else
+                          _buildLimiterMode(context),
+                      ],
                     ),
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // 3. Content based on mode
-                  if (_selectedMode == 0)
-                    _buildFocusMode(context, provider)
-                  else
-                    _buildLimiterMode(context),
-                ],
+                ),
               ),
-            ),
+            ],
           );
         },
       ),
@@ -153,16 +170,36 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
 
   Widget _buildModeButton(int index, String label, IconData icon) {
     final isSelected = _selectedMode == index;
+    final color = index == 0 ? AppColors.primaryBlue : AppColors.warningOrange;
+    
     return GestureDetector(
       onTap: () => setState(() => _selectedMode = index),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryBlue : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [color, color.withValues(alpha: 0.7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isSelected ? null : Colors.transparent,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
@@ -174,8 +211,8 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
               label,
               style: TextStyle(
                 color: isSelected ? Colors.white : AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
                 fontSize: 14,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               ),
             ),
           ],
@@ -185,23 +222,41 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
   }
 
   Widget _buildFocusMode(BuildContext context, AppBlockingProviderV2 provider) {
+    final activeCount = provider.activeSessions.length;
+    final isBlocking = activeCount > 0;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildStatusCard(provider),
-        const SizedBox(height: 24),
-        _buildProtectionLock(context),
-        const SizedBox(height: 24),
-        const Text(
-          'Quick Actions',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+        // Large Mode Toggle Cards
+        Row(
+          children: [
+            // Focus Mode Card (Left)
+            Expanded(
+              child: _buildModeToggleCard(
+                icon: isBlocking ? Icons.shield : Icons.shield_outlined,
+                title: 'Focus Mode',
+                description: 'Minimize distractions',
+                isActive: isBlocking,
+                activeColor: AppColors.successGreen,
+                onToggle: (value) {
+                  if (value) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AppSelectionScreenV2(isQuickMode: true)),
+                    );
+                  }
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Commitment Mode Card (Right)
+            Expanded(
+              child: _buildCommitmentModeCard(),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        _buildQuickActions(context),
+        
         const SizedBox(height: 24),
         
         // Scheduler Section
@@ -213,64 +268,242 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
       ],
     );
   }
-
-  Widget _buildLimiterMode(BuildContext context) {
-    // Reuse the existing Limiter Screen UI logic, but embedded
-    // For now, we'll wrap the existing screen in a Container
-    // Ideally, we should refactor AppUsageLimiterScreen to be a widget we can embed
-    // But for speed, we can just instantiate it here if it supports it, or rebuild the UI
-    // Since AppUsageLimiterScreen is a Scaffold, we can't embed it directly.
-    // We will show a placeholder that links to it for now, or better yet,
-    // we should refactor AppUsageLimiterScreen to be a widget.
-    
-    // For this iteration, let's provide a clean entry point
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.warningOrange.withValues(alpha:0.3)),
+  
+  Widget _buildModeToggleCard({
+    required IconData icon,
+    required String title,
+    required String description,
+    required bool isActive,
+    required Color activeColor,
+    required Function(bool) onToggle,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12), // Reduced from 16
+      height: 160,
+      decoration: BoxDecoration(
+        color: isActive ? activeColor.withValues(alpha: 0.08) : AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isActive ? activeColor : AppColors.border.withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 28, // Reduced from 32
+            color: isActive ? activeColor : AppColors.textSecondary,
           ),
-          child: Column(
+          const SizedBox(height: 6), // Reduced from 8
+          Text(
+            title,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            description,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          const Spacer(),
+          Row(
             children: [
-              const Icon(Icons.timer_outlined, size: 48, color: AppColors.warningOrange),
-              const SizedBox(height: 16),
-              const Text(
-                'Daily Usage Limits',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              Transform.scale(
+                scale: 0.85,
+                child: Switch(
+                  value: isActive,
+                  onChanged: onToggle,
+                  activeColor: activeColor,
+                  activeTrackColor: activeColor.withValues(alpha: 0.3),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Set daily time allowances for your apps. Once the limit is reached, the app is blocked for the rest of the day.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: GradientButton(
-                  text: 'Manage Limits',
-                  icon: Icons.settings,
-                  gradient: AppColors.warningGradient,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AppUsageLimiterScreen()),
-                    );
-                  },
+              const SizedBox(width: 4),
+              Text(
+                isActive ? 'ON' : 'OFF',
+                style: TextStyle(
+                  color: isActive ? activeColor : AppColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-        ),
-      ],
+          const SizedBox(height: 2), // Reduced from 4
+          Row(
+            children: [
+              Icon(
+                Icons.circle,
+                size: 6,
+                color: AppColors.textSecondary.withValues(alpha: 0.5),
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'Last activated: Today, 8:00 AM',
+                  style: TextStyle(
+                    color: AppColors.textSecondary.withValues(alpha: 0.7),
+                    fontSize: 10,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
+  }
+  
+  Widget _buildCommitmentModeCard() {
+    final remainingTime = _isProtectionActive && _protectionLockEndTime != null
+        ? _protectionLockEndTime!.difference(_currentTime)
+        : Duration.zero;
+    
+    final isExpired = remainingTime.isNegative;
+    if (isExpired && _isProtectionActive) {
+      _checkProtectionStatus();
+    }
+    
+    String getTimeRemaining() {
+      if (!_isProtectionActive || remainingTime.isNegative) {
+        return '';
+      }
+      
+      final hours = remainingTime.inHours;
+      final minutes = remainingTime.inMinutes.remainder(60);
+      final seconds = remainingTime.inSeconds.remainder(60);
+      
+      if (hours > 0) {
+        return '${hours}h ${minutes}m ${seconds}s';
+      } else if (minutes > 0) {
+        return '${minutes}m ${seconds}s';
+      } else {
+        return '${seconds}s';
+      }
+    }
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      height: 160,
+      decoration: BoxDecoration(
+        color: _isProtectionActive 
+            ? AppColors.warningOrange.withValues(alpha: 0.08) 
+            : AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _isProtectionActive 
+              ? AppColors.warningOrange 
+              : AppColors.border.withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Icon and Timer Row
+          Row(
+            children: [
+              Icon(
+                _isProtectionActive ? Icons.lock : Icons.lock_open,
+                size: 28,
+                color: _isProtectionActive ? AppColors.warningOrange : AppColors.textSecondary,
+              ),
+              if (_isProtectionActive) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    getTimeRemaining(),
+                    style: const TextStyle(
+                      color: AppColors.warningOrange,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Commitment Mode',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            'Lock apps until task done',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              Transform.scale(
+                scale: 0.85,
+                child: Switch(
+                  value: _isProtectionActive,
+                  onChanged: (value) => _handleCommitmentToggle(value),
+                  activeColor: AppColors.warningOrange,
+                  activeTrackColor: AppColors.warningOrange.withValues(alpha: 0.3),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _isProtectionActive ? 'ON' : 'OFF',
+                style: TextStyle(
+                  color: _isProtectionActive ? AppColors.warningOrange : AppColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Icon(
+                Icons.circle,
+                size: 6,
+                color: AppColors.textSecondary.withValues(alpha: 0.5),
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'Last activated: Yesterday, 6:30 PM',
+                  style: TextStyle(
+                    color: AppColors.textSecondary.withValues(alpha: 0.7),
+                    fontSize: 10,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLimiterMode(BuildContext context) {
+    // Embed the body content without Scaffold to avoid nesting issues
+    return const AppUsageLimiterScreen(embeddable: true);
   }
 
   Widget _buildPermissionWarning(BuildContext context, List<String> missing) {
@@ -476,6 +709,19 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
               '${scheduledApps.length} apps',
               style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline, color: AppColors.primaryBlue),
+              iconSize: 32,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SchedulerScreen()),
+                );
+              },
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -507,35 +753,79 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
               
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                child: ModernCard(
-                  child: ListTile(
-                    leading: appInfo != null && appInfo.icon != null
-                        ? Image.memory(appInfo.icon!, width: 40, height: 40)
-                        : const Icon(Icons.apps, color: AppColors.primaryBlue, size: 40),
-                    title: Text(
-                      appInfo?.name ?? schedule.packageName,
-                      style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.cardDark,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    // App Icon (40px circular)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: appInfo != null && appInfo.icon != null
+                          ? Image.memory(appInfo.icon!, width: 40, height: 40, fit: BoxFit.cover)
+                          : Container(
+                              width: 40,
+                              height: 40,
+                              color: AppColors.surfaceDark,
+                              child: const Icon(Icons.apps, color: AppColors.textSecondary, size: 20),
+                            ),
                     ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Schedule: ${_formatTime(schedule.startHour, schedule.startMinute)} - ${_formatTime(schedule.endHour, schedule.endMinute)}',
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                        ),
-                        if (isCurrentlyBlocked)
-                          const Text(
-                            '🔒 Currently blocked',
-                            style: TextStyle(color: AppColors.dangerRed, fontSize: 11),
+                    const SizedBox(width: 12),
+                    // App Name and Time
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              appInfo?.name ?? schedule.packageName,
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                      ],
+                          const SizedBox(width: 12),
+                          Text(
+                            '${_formatTime(schedule.startHour, schedule.startMinute)} - ${_formatTime(schedule.endHour, schedule.endMinute)}',
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    trailing: Icon(
-                      isCurrentlyBlocked ? Icons.lock : Icons.schedule,
-                      color: isCurrentlyBlocked ? AppColors.dangerRed : AppColors.primaryBlue,
-                      size: 20,
-                    ),
-                  ),
+                    const SizedBox(width: 8),
+                    // Status Badge
+                    if (isCurrentlyBlocked)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.successGreen,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.lock, size: 11, color: Colors.white),
+                            SizedBox(width: 4),
+                            Text(
+                              'Active',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               );
             },
@@ -584,6 +874,19 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
                   ),
                 ),
               ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline, color: AppColors.dangerRed),
+              iconSize: 32,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AppSelectionScreenV2(isQuickMode: false)),
+                );
+              },
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -612,23 +915,98 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
               final session = strictModeApps[index];
               final appInfo = provider.getAppInfo(session.appPackage);
               
+              // Calculate remaining time
+              final remaining = session.endTime.difference(_currentTime);
+              final remainingHours = remaining.inHours;
+              final remainingMins = remaining.inMinutes.remainder(60);
+              
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                child: ModernCard(
-                  child: ListTile(
-                    leading: appInfo != null && appInfo.icon != null
-                        ? Image.memory(appInfo.icon!, width: 40, height: 40)
-                        : const Icon(Icons.block, color: AppColors.dangerRed, size: 40),
-                    title: Text(
-                      appInfo?.name ?? session.appPackage,
-                      style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.cardDark,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.dangerRed, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    // App Icon (40px circular)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: appInfo != null && appInfo.icon != null
+                          ? Image.memory(appInfo.icon!, width: 40, height: 40, fit: BoxFit.cover)
+                          : Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceDark,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  (appInfo?.name ?? session.appPackage).substring(0, 1).toUpperCase(),
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
                     ),
-                    subtitle: Text(
-                      'Blocked until ${_formatDateTime(session.endTime)}',
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    const SizedBox(width: 12),
+                    // App Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            appInfo?.name ?? session.appPackage,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            remainingHours > 0 
+                                ? '${remainingHours}h ${remainingMins}m left'
+                                : '${remainingMins}m left',
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    trailing: const Icon(Icons.lock, color: AppColors.dangerRed, size: 20),
-                  ),
+                    // BLOCKED Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.dangerRed,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'BLOCKED',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(Icons.close, size: 12, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               );
             },

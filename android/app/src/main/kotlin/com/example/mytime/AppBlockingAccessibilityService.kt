@@ -249,20 +249,10 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             }
             
             // 2. Security Hardening: Block "Clear Data", "Disable Service", and "Uninstall"
-            // We double check commitment state here to be safe
-            if (!MainActivity.isCommitmentActive) {
-                // Fallback check in case MainActivity was killed
-                try {
-                    val commitmentManager = CommitmentModeManager(applicationContext)
-                    if (commitmentManager.isCommitmentActive()) {
-                        MainActivity.isCommitmentActive = true
-                    }
-                } catch (e: Exception) {
-                    // Ignore
-                }
-            }
-
-            if (MainActivity.isCommitmentActive) {
+            // Check for ANY active commitments (strict mode OR usage limiter)
+            val hasAnyCommitment = checkForAnyActiveCommitments()
+            
+            if (hasAnyCommitment) {
                 // PRIORITY 1: Detect CLICK events on uninstall-related buttons
                 // This catches the moment the user taps "Uninstall" or "Deactivate"
                 if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
@@ -291,10 +281,63 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                         
                         if (isUninstallClick || isDeactivateClick) {
                             android.util.Log.d("AccessibilityService", "🛡️ BLOCKED CLICK: Uninstall/Deactivate button detected!")
+                            showCommitmentWarning()
                             triggerGlobalActionHome(true)
                             return
                         }
                     }
+                }
+                
+                // UNIVERSAL UNINSTALL PROTECTION: Detect uninstall attempts from ANY source
+                // This catches homescreen uninstalls, settings uninstalls, and any other method
+                if (hasAnyCommitment) {
+                    android.util.Log.d("AccessibilityService", "✅ Commitment active, checking package: $packageName")
+                    
+                    // Check if this is an uninstall-related package OR launcher (for homescreen uninstalls)
+                    val isUninstallPackage = packageName.contains("packageinstaller") ||
+                                            packageName.contains("uninstaller") ||
+                                            packageName.contains("installer") ||
+                                            packageName == "com.android.packageinstaller" ||
+                                            packageName == "com.google.android.packageinstaller"
+                    
+                    val isLauncher = packageName.contains("launcher") ||
+                                    packageName.contains("trebuchet") ||  // LineageOS
+                                    packageName.contains("pixel") ||       // Pixel Launcher
+                                    packageName.contains("nova") ||        // Nova Launcher
+                                    packageName.contains("lawnchair")      // Lawnchair
+                    
+                    android.util.Log.d("AccessibilityService", "📦 Is uninstall package: $isUninstallPackage, Is launcher: $isLauncher")
+                    
+                    if (isUninstallPackage || isLauncher) {
+                        // Scan window for MyTime app name or package AND uninstall-related text
+                        val rootNode = rootInActiveWindow
+                        if (rootNode != null) {
+                            val windowText = getWindowText(rootNode).lowercase()
+                            android.util.Log.d("AccessibilityService", "🔍 Window text: ${windowText.take(200)}")
+                            
+                            val isMyTimeUninstall = windowText.contains("mytime") ||
+                                                   windowText.contains("my time") ||
+                                                   windowText.contains("com.example.mytime")
+                            
+                            val hasUninstallText = windowText.contains("uninstall") ||
+                                                  windowText.contains("remove") ||
+                                                  windowText.contains("delete")
+                            
+                            android.util.Log.d("AccessibilityService", "🎯 Is MyTime: $isMyTimeUninstall, Has uninstall text: $hasUninstallText")
+                            
+                            // Block if BOTH conditions are met: MyTime is mentioned AND uninstall action
+                            if (isMyTimeUninstall && hasUninstallText) {
+                                android.util.Log.d("AccessibilityService", "🛡️ BLOCKED: MyTime uninstall dialog detected!")
+                                showCommitmentWarning()
+                                triggerGlobalActionHome(true)
+                                return
+                            }
+                        } else {
+                            android.util.Log.d("AccessibilityService", "⚠️ Root node is null")
+                        }
+                    }
+                } else {
+                    android.util.Log.d("AccessibilityService", "❌ No commitment active")
                 }
                 
                 val text = event.text?.toString()?.lowercase() ?: ""
@@ -331,14 +374,13 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                  // Google Pixel
                                  packageName.contains("google.android")
                 
-                if (MainActivity.isCommitmentActive && isSettings) {
-                    // Auto-clear if expired
+                if (hasAnyCommitment && isSettings) {
+                    // Auto-clear if expired (strict mode only)
                     try {
                         val manager = CommitmentModeManager(applicationContext)
                         manager.clearIfExpired()
                         if (!manager.isCommitmentActive()) {
                             MainActivity.isCommitmentActive = false
-                            return // Commitment expired, allow everything
                         }
                     } catch (e: Exception) {
                         // Ignore
@@ -510,6 +552,42 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     try {
                         MainActivity.instance?.notifyAppLaunched(packageName)
                     } catch (e: Exception) {}
+                } else {
+                    // CONTINUOUS TRACKING: App is still active, check if we need to increment
+                    val now = System.currentTimeMillis()
+                    val elapsedMillis = now - usageTrackingStartTime
+                    
+                    // If 60 seconds have passed, increment usage
+                    if (elapsedMillis >= 60000) {
+                        val minutesPassed = (elapsedMillis / 60000).toInt()
+                        
+                        if (minutesPassed > 0) {
+                            val currentUsage = MainActivity.usageToday[packageName] ?: 0
+                            val newUsage = currentUsage + minutesPassed
+                            MainActivity.usageToday[packageName] = newUsage
+                            
+                            // Reset tracking start time (keep remainder)
+                            usageTrackingStartTime = now - (elapsedMillis % 60000)
+                            
+                            android.util.Log.d("AccessibilityService", "⏱️ Continuous: $packageName +$minutesPassed min (Total: $newUsage)")
+                            
+                            // Save state
+                            saveUsageStats(packageName)
+                            
+                            // Notify Flutter
+                            try {
+                                MainActivity.instance?.updateNativeUsage(packageName, newUsage)
+                            } catch (e: Exception) {}
+                            
+                            // Check if limit reached
+                            val limit = MainActivity.usageLimits[packageName] ?: Int.MAX_VALUE
+                            if (newUsage >= limit) {
+                                android.util.Log.d("AccessibilityService", "🚫 Limit reached: $packageName")
+                                triggerGlobalActionHome(false)
+                                currentLimitedApp = null
+                            }
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -657,6 +735,86 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             }
         }
         return false
+    }
+    
+    /**
+     * Check if there are ANY active commitments (strict mode OR usage limiter)
+     */
+    private fun checkForAnyActiveCommitments(): Boolean {
+        try {
+            // Check strict mode commitment
+            if (MainActivity.isCommitmentActive) {
+                return true
+            }
+            
+            // Fallback check for strict mode
+            try {
+                val commitmentManager = CommitmentModeManager(applicationContext)
+                if (commitmentManager.isCommitmentActive()) {
+                    MainActivity.isCommitmentActive = true
+                    return true
+                }
+            } catch (e: Exception) {
+                // Ignore
+            }
+            
+            // Check usage limiter commitments
+            val prefs = applicationContext.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+            val keys = prefs.all.keys
+            
+            for (key in keys) {
+                if (key.startsWith("flutter.usage_limit_durations_")) {
+                    val value = prefs.getString(key, null)
+                    if (value != null && value.contains("\"hasCommitment\":true")) {
+                        // Found an active usage limiter commitment
+                        android.util.Log.d("AccessibilityService", "🔒 Found active usage limiter commitment")
+                        return true
+                    }
+                }
+            }
+            
+            return false
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Error checking commitments", e)
+            return false
+        }
+    }
+    
+    /**
+     * Extract all text from a window node tree
+     */
+    private fun getWindowText(node: AccessibilityNodeInfo?): String {
+        if (node == null) return ""
+        
+        val textBuilder = StringBuilder()
+        
+        // Add this node's text
+        node.text?.let { textBuilder.append(it).append(" ") }
+        node.contentDescription?.let { textBuilder.append(it).append(" ") }
+        
+        // Recursively add children's text
+        for (i in 0 until node.childCount) {
+            textBuilder.append(getWindowText(node.getChild(i)))
+        }
+        
+        return textBuilder.toString()
+    }
+    
+    /**
+     * Show a toast warning about active commitments
+     */
+    private fun showCommitmentWarning() {
+        try {
+            handler.post {
+                android.widget.Toast.makeText(
+                    applicationContext,
+                    "⚠️ Cannot uninstall: Active commitments in place!",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Error showing warning", e)
+        }
     }
 
     override fun onDestroy() {

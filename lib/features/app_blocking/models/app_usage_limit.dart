@@ -31,12 +31,15 @@ class AppUsageLimit extends HiveObject {
   final bool isBlocked; // Whether app is blocked for today
 
   @HiveField(8)
-  final int consecutiveDays; // Days since limit was set
+  final bool hasCommitment; // Whether limit has commitment mode enabled
 
   @HiveField(9)
-  final DateTime createdAt;
+  final int consecutiveDays; // Days since limit was set
 
   @HiveField(10)
+  final DateTime createdAt;
+
+  @HiveField(11)
   final DateTime updatedAt;
 
   AppUsageLimit({
@@ -48,6 +51,7 @@ class AppUsageLimit extends HiveObject {
     required this.lastResetDate,
     this.isActive = true,
     this.isBlocked = false,
+    this.hasCommitment = false,
     this.consecutiveDays = 0,
     required this.createdAt,
     required this.updatedAt,
@@ -79,6 +83,7 @@ class AppUsageLimit extends HiveObject {
     DateTime? lastResetDate,
     bool? isActive,
     bool? isBlocked,
+    bool? hasCommitment,
     int? consecutiveDays,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -92,6 +97,7 @@ class AppUsageLimit extends HiveObject {
       lastResetDate: lastResetDate ?? this.lastResetDate,
       isActive: isActive ?? this.isActive,
       isBlocked: isBlocked ?? this.isBlocked,
+      hasCommitment: hasCommitment ?? this.hasCommitment,
       consecutiveDays: consecutiveDays ?? this.consecutiveDays,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

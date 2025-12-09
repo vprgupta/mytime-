@@ -25,16 +25,17 @@ class AppUsageLimitAdapter extends TypeAdapter<AppUsageLimit> {
       lastResetDate: fields[5] as DateTime,
       isActive: fields[6] as bool,
       isBlocked: fields[7] as bool,
-      consecutiveDays: fields[8] as int,
-      createdAt: fields[9] as DateTime,
-      updatedAt: fields[10] as DateTime,
+      hasCommitment: fields[8] as bool,
+      consecutiveDays: fields[9] as int,
+      createdAt: fields[10] as DateTime,
+      updatedAt: fields[11] as DateTime,
     );
   }
 
   @override
   void write(BinaryWriter writer, AppUsageLimit obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.packageName)
       ..writeByte(1)
@@ -52,10 +53,12 @@ class AppUsageLimitAdapter extends TypeAdapter<AppUsageLimit> {
       ..writeByte(7)
       ..write(obj.isBlocked)
       ..writeByte(8)
-      ..write(obj.consecutiveDays)
+      ..write(obj.hasCommitment)
       ..writeByte(9)
-      ..write(obj.createdAt)
+      ..write(obj.consecutiveDays)
       ..writeByte(10)
+      ..write(obj.createdAt)
+      ..writeByte(11)
       ..write(obj.updatedAt);
   }
 
@@ -84,6 +87,7 @@ AppUsageLimit _$AppUsageLimitFromJson(Map<String, dynamic> json) =>
       lastResetDate: DateTime.parse(json['lastResetDate'] as String),
       isActive: json['isActive'] as bool? ?? true,
       isBlocked: json['isBlocked'] as bool? ?? false,
+      hasCommitment: json['hasCommitment'] as bool? ?? false,
       consecutiveDays: (json['consecutiveDays'] as num?)?.toInt() ?? 0,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
@@ -99,6 +103,7 @@ Map<String, dynamic> _$AppUsageLimitToJson(AppUsageLimit instance) =>
       'lastResetDate': instance.lastResetDate.toIso8601String(),
       'isActive': instance.isActive,
       'isBlocked': instance.isBlocked,
+      'hasCommitment': instance.hasCommitment,
       'consecutiveDays': instance.consecutiveDays,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),

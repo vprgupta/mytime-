@@ -29,21 +29,55 @@ class AppUsageLimiterService {
       Hive.registerAdapter(AppUsageLimitAdapter());
     }
 
-    // Open limits box
-    if (!Hive.isBoxOpen(_limitsBoxName)) {
+    // Open limits box with migration handling
+    try {
+      if (!Hive.isBoxOpen(_limitsBoxName)) {
+        _limitsBox = await Hive.openBox<AppUsageLimit>(_limitsBoxName);
+      } else {
+        _limitsBox = Hive.box<AppUsageLimit>(_limitsBoxName);
+      }
+    } catch (e) {
+      // If there's a type mismatch, delete and recreate the box
+      debugPrint('Migration needed: Clearing old limits box due to structure change');
+      await Hive.deleteBoxFromDisk(_limitsBoxName);
       _limitsBox = await Hive.openBox<AppUsageLimit>(_limitsBoxName);
-    } else {
-      _limitsBox = Hive.box<AppUsageLimit>(_limitsBoxName);
     }
     
     // Open durations box
-    if (!Hive.isBoxOpen(_durationsBoxName)) {
+    try {
+      if (!Hive.isBoxOpen(_durationsBoxName)) {
+        _durationsBox = await Hive.openBox<Map>(_durationsBoxName);
+      } else {
+        _durationsBox = Hive.box<Map>(_durationsBoxName);
+      }
+    } catch (e) {
+      debugPrint('Migration needed: Clearing old durations box');
+      await Hive.deleteBoxFromDisk(_durationsBoxName);
       _durationsBox = await Hive.openBox<Map>(_durationsBoxName);
-    } else {
-      _durationsBox = Hive.box<Map>(_durationsBoxName);
     }
 
     await _performDailyReset();
+    
+    // RE-SYNC: Notify native about all active limits
+    // This ensures tracking works after app restart/reinstall
+    try {
+      final activeLimits = _limitsBox.values.where((l) => l.isActive).toList();
+      for (var limit in activeLimits) {
+        await _notifyNativeLimitAdded(
+          limit.packageName,
+          limit.currentLimitMinutes,
+          limit.usedMinutesToday,
+        );
+        debugPrint('🔄 Re-synced limit: ${limit.appName}');
+      }
+      if (activeLimits.isNotEmpty) {
+        debugPrint('✅ Re-synced ${activeLimits.length} limits with native');
+      }
+    } catch (e) {
+      debugPrint('Error re-syncing limits: $e');
+    }
+    
+    _isInitialized = true;
     
     // Setup MethodChannel listener
     platform.setMethodCallHandler((call) async {
@@ -83,7 +117,7 @@ class AppUsageLimiterService {
   }
 
   // Set a usage limit for an app
-  Future<void> setAppLimit(String packageName, String appName, int limitMinutes, {int durationDays = -1}) async {
+  Future<void> setAppLimit(String packageName, String appName, int limitMinutes, {int durationDays = -1, bool hasCommitment = false}) async {
     await initialize();
     
     final now = DateTime.now();
@@ -101,6 +135,7 @@ class AppUsageLimiterService {
       final updatedLimit = existingLimit.copyWith(
         initialLimitMinutes: limitMinutes,
         currentLimitMinutes: limitMinutes,
+        hasCommitment: hasCommitment,
         updatedAt: now,
       );
       
@@ -112,6 +147,7 @@ class AppUsageLimiterService {
         appName: appName,
         initialLimitMinutes: limitMinutes,
         currentLimitMinutes: limitMinutes,
+        hasCommitment: hasCommitment,
         lastResetDate: now,
         createdAt: now,
         updatedAt: now,
@@ -125,6 +161,7 @@ class AppUsageLimiterService {
       await _durationsBox.put(packageName, {
         'durationDays': durationDays,
         'startDate': now.toIso8601String(),
+        'hasCommitment': hasCommitment,
       });
     } else {
       // If indefinite, remove any existing duration info
@@ -374,6 +411,30 @@ class AppUsageLimiterService {
     
     final limit = await getAppLimit(packageName);
     if (limit != null) {
+      // Check if limit has commitment mode enabled
+      if (limit.hasCommitment) {
+        // Check if commitment period is still active
+        final durationInfo = _durationsBox.get(packageName);
+        if (durationInfo != null) {
+          final hasCommitment = durationInfo['hasCommitment'] as bool? ?? false;
+          if (hasCommitment) {
+            final durationDays = durationInfo['durationDays'] as int;
+            final startDateStr = durationInfo['startDate'] as String;
+            final startDate = DateTime.parse(startDateStr);
+            final expiryDate = startDate.add(Duration(days: durationDays));
+            final now = DateTime.now();
+            
+            if (now.isBefore(expiryDate)) {
+              final remainingDays = expiryDate.difference(now).inDays + 1;
+              throw Exception('Cannot remove limit: Commitment mode is active for $remainingDays more day${remainingDays == 1 ? "" : "s"}');
+            }
+          }
+        } else if (limit.hasCommitment) {
+          // Indefinite commitment
+          throw Exception('Cannot remove limit: Commitment mode is active indefinitely');
+        }
+      }
+      
       if (limit.isInBox) {
         await limit.delete();
       }

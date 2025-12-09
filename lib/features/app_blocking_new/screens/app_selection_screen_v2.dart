@@ -131,7 +131,7 @@ class _AppSelectionScreenV2State extends State<AppSelectionScreenV2> {
               padding: const EdgeInsets.all(16),
               child: GradientButton(
                 text: 'Block ${_selectedApps.length} Apps',
-                gradient: AppColors.dangerGradient,
+                gradient: AppColors.dangerGradientColors,
                 onPressed: _blockSelectedApps,
               ),
             ),

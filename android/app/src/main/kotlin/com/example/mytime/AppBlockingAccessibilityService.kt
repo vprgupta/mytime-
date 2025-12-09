@@ -78,13 +78,15 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         val scheduledApps = mutableMapOf<String, TimeSchedule>()
         
         @JvmStatic
-        fun setAppSchedule(packageName: String, startH: Int, startM: Int, endH: Int, endM: Int, enabled: Boolean) {
-            scheduledApps[packageName] = TimeSchedule(startH, startM, endH, endM, enabled)
+        fun setAppSchedule(packageName: String, startHour: Int, startMinute: Int, endHour: Int, endMinute: Int, isEnabled: Boolean) {
+            scheduledApps[packageName] = TimeSchedule(startHour, startMinute, endHour, endMinute, isEnabled)
+            android.util.Log.d("AccessibilityService", "📅 Schedule set for $packageName: $startHour:$startMinute-$endHour:$endMinute (enabled=$isEnabled)")
         }
         
         @JvmStatic
         fun removeAppSchedule(packageName: String) {
             scheduledApps.remove(packageName)
+            android.util.Log.d("AccessibilityService", "🗑️ Schedule removed for $packageName")
         }
     }
     

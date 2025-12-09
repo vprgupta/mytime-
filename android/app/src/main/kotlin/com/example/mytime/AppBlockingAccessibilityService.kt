@@ -171,10 +171,28 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         
         val packageName = event.packageName?.toString()
         
-        // 1. IMMEDIATE BLOCKING: Check if this is a blocked app FIRST (Bypass Debounce)
+        // 1. IMMEDIATE BLOCKING: Check if this is a blocked app FIRST (Bypass ALL Debounce)
+        // Process ANY event type for blocked apps instantly
         if (MainActivity.blockedPackages.contains(packageName)) {
              processEvent(event)
              return
+        }
+        
+        // 2. Check scheduled apps - also needs instant blocking
+        if (scheduledApps.containsKey(packageName)) {
+            processEvent(event)
+            return
+        }
+        
+        // 3. Check usage limited apps - instant blocking when limit reached
+        if (MainActivity.limitedPackages.contains(packageName)) {
+            val currentUsage = MainActivity.usageToday[packageName] ?: 0
+            val limit = MainActivity.usageLimits[packageName] ?: Int.MAX_VALUE
+            if (currentUsage >= limit) {
+                // Limit reached, block instantly
+                processEvent(event)
+                return
+            }
         }
         
         // CRITICAL SECURITY: Always process events from Settings or Package Installer immediately (No Debounce)
@@ -603,26 +621,33 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     }
     
     private var lastBlockTriggerTime = 0L
+    private var lastBlockedPackage: String? = null
 
     fun triggerGlobalActionHome(immediate: Boolean = false) {
-        // Prevent double-triggering (debounce)
         val now = System.currentTimeMillis()
-        if (now - lastBlockTriggerTime < 2000) {
+        
+        // Only debounce if it's the SAME package being blocked repeatedly
+        // This prevents spam but allows rapid blocking of different apps
+        val currentPackage = rootInActiveWindow?.packageName?.toString()
+        if (currentPackage == lastBlockedPackage && now - lastBlockTriggerTime < 1000) {
+            // Same app blocked within 1 second, skip to prevent spam
             return
         }
+        
         lastBlockTriggerTime = now
+        lastBlockedPackage = currentPackage
 
         // CRITICAL: Perform the home action IMMEDIATELY
         // This kicks the user out of the current screen
         try {
             performGlobalAction(GLOBAL_ACTION_HOME)
-            android.util.Log.d("AccessibilityService", "✅ Performed GLOBAL_ACTION_HOME")
+            android.util.Log.d("AccessibilityService", "✅ Performed GLOBAL_ACTION_HOME for $currentPackage")
         } catch (e: Exception) {
             android.util.Log.e("AccessibilityService", "Failed to perform home action: ${e.message}")
         }
         
-        // THEN show overlay as visual feedback
-        showBlockedOverlay()
+        // THEN show overlay as visual feedback (non-blocking)
+        handler.post { showBlockedOverlay() }
     }
     
     private fun showBlockedOverlay() {

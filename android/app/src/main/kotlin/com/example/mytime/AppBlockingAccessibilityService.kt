@@ -285,6 +285,33 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                         
                         android.util.Log.d("AccessibilityService", "🖱️ CLICK: id=$viewId, text=$text, desc=$desc, class=$className")
                         
+                        // CRITICAL: Detect Force Stop button clicks
+                        // This catches force stop from ANY screen (battery, app info, etc)
+                        val isForceStopClick = viewId.contains("force_stop") ||
+                                              viewId.contains("forcestop") ||
+                                              text.contains("force stop") ||
+                                              text.contains("force close") ||
+                                              desc.contains("force stop") ||
+                                              desc.contains("force close")
+                        
+                        if (isForceStopClick) {
+                            // Check if we're in a MyTime-related screen
+                            val rootNode = rootInActiveWindow
+                            if (rootNode != null) {
+                                val windowText = getWindowText(rootNode).lowercase()
+                                val isMyTimeContext = windowText.contains("mytime") ||
+                                                     windowText.contains("my time") ||
+                                                     windowText.contains("com.example.mytime")
+                                
+                                if (isMyTimeContext) {
+                                    android.util.Log.d("AccessibilityService", "🛡️ BLOCKED: Force Stop button click for MyTime!")
+                                    showCommitmentWarning()
+                                    triggerGlobalActionHome(true)
+                                    return
+                                }
+                            }
+                        }
+                        
                         // Detect uninstall button clicks by ID or text
                         val isUninstallClick = viewId.contains("uninstall") || 
                                               viewId.contains("delete") ||
@@ -372,6 +399,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                  packageName.contains("packageinstaller") || 
                                  packageName.contains("permission") || 
                                  packageName.contains("vending") ||
+                                 packageName.contains("battery") ||  // Battery settings (all OEMs)
                                  // Samsung/OneUI
                                  packageName.contains("samsung") ||
                                  // Xiaomi/MIUI
@@ -381,6 +409,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                  packageName.contains("coloros") ||
                                  packageName.contains("safecenter") ||
                                  packageName.contains("oneplus") ||
+                                 packageName.contains("oplus") ||  // OnePlus battery app
                                  // Vivo/FuntouchOS
                                  packageName.contains("vivo") ||
                                  packageName.contains("iqoo") ||
@@ -407,6 +436,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     }
                     
                     // STEP 1: Check if this screen is related to MyTime
+                    // Check for both app name AND package name
                     var isMyTimeScreen = combinedText.contains("mytime") || combinedText.contains("mytask") || 
                                          combinedText.contains("my time") || combinedText.contains("my task") ||
                                          combinedText.contains("com.example.mytime")
@@ -416,6 +446,18 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                         val rootNode = rootInActiveWindow
                         if (rootNode != null) {
                             isMyTimeScreen = isScreenRelatedToApp(rootNode)
+                            
+                            // Additional check: scan for package name in window
+                            if (!isMyTimeScreen) {
+                                val windowText = getWindowText(rootNode).lowercase()
+                                isMyTimeScreen = windowText.contains("com.example.mytime") ||
+                                                windowText.contains("mytime") ||
+                                                windowText.contains("my time")
+                                
+                                if (isMyTimeScreen) {
+                                    android.util.Log.d("AccessibilityService", "🔍 Found MyTime via package name scan")
+                                }
+                            }
                         }
                     }
                     
@@ -457,7 +499,32 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                             return
                         }
                         
-                        // Block 2: App Info / Uninstall for MyTime
+                        // Block 2: Battery Usage Screen for MyTime ONLY
+                        // Only block if BOTH conditions are met:
+                        // 1. Battery-related screen detected
+                        // 2. MyTime is specifically shown/selected in that screen
+                        val rootNode = rootInActiveWindow
+                        val windowText = if (rootNode != null) getWindowText(rootNode).lowercase() else ""
+                        
+                        // Check if this is a battery-related screen
+                        val isBatteryRelated = packageName.contains("battery") ||
+                                              windowText.contains("battery") ||
+                                              windowText.contains("power consumption")
+                        
+                        // Check if MyTime is specifically shown in this battery screen
+                        val isMyTimeInBattery = windowText.contains("mytime") ||
+                                               windowText.contains("my time") ||
+                                               windowText.contains("com.example.mytime")
+                        
+                        // Only block if BOTH are true (battery screen AND MyTime is shown)
+                        if (isBatteryRelated && isMyTimeInBattery) {
+                            android.util.Log.d("AccessibilityService", "🛡️ Blocked: MyTime in Battery Usage Screen")
+                            showCommitmentWarning()
+                            triggerGlobalActionHome(true)
+                            return
+                        }
+                        
+                        // Block 3: App Info / Uninstall for MyTime
                         // Manufacturer variations:
                         // Stock: "uninstall", "app info"
                         // Samsung: "remove", "delete app"
@@ -478,24 +545,27 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                             combinedText.contains("erase") ||            // Some OEMs
                             combinedText.contains("wipe data")) {        // Some OEMs
                             android.util.Log.d("AccessibilityService", "🛡️ Blocked: MyTime App Info/Uninstall")
+                            showCommitmentWarning()
                             triggerGlobalActionHome(true)
                             return
                         }
                         
-                        // Block 3: Device Admin for MyTime
+                        // Block 4: Device Admin for MyTime
                         if (combinedText.contains("device admin") || 
                             combinedText.contains("device policy") ||
                             combinedText.contains("admin app") ||
                             combinedText.contains("deactivate") ||
                             combinedText.contains("activate")) {
                             android.util.Log.d("AccessibilityService", "🛡️ Blocked: MyTime Device Admin")
+                            showCommitmentWarning()
                             triggerGlobalActionHome(true)
                             return
                         }
                         
-                        // Block 4: Package Installer for MyTime
+                        // Block 5: Package Installer for MyTime
                         if (packageName.contains("packageinstaller")) {
                             android.util.Log.d("AccessibilityService", "🛡️ Blocked: MyTime Uninstall Dialog")
+                            showCommitmentWarning()
                             triggerGlobalActionHome(true)
                             return
                         }
@@ -835,7 +905,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             handler.post {
                 android.widget.Toast.makeText(
                     applicationContext,
-                    "⚠️ Cannot uninstall: Active commitments in place!",
+                    "⚠️ Cannot modify app: Active commitments in place!",
                     android.widget.Toast.LENGTH_LONG
                 ).show()
             }
@@ -843,11 +913,23 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             android.util.Log.e("AccessibilityService", "Error showing warning", e)
         }
     }
+    
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        // Service continues running even if app is swiped from recents
+        // This ensures protection persists when commitment mode is active
+        android.util.Log.d("AccessibilityService", "📱 App removed from recents, service continues")
+    }
 
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
         isProcessing.set(false)
         instance = null
+        
+        // If commitment is active, log warning
+        if (checkForAnyActiveCommitments()) {
+            android.util.Log.w("AccessibilityService", "⚠️ Service destroyed while commitment active!")
+        }
     }
 }

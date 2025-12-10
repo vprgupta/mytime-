@@ -65,6 +65,9 @@ dependencies:
   json_annotation: ^4.9.0
   http: ^1.5.0
   json_serializable: ^6.8.0
+  
+  # Onboarding Tour
+  introduction_screen: ^3.1.12
 
 dev_dependencies:
   flutter_test:

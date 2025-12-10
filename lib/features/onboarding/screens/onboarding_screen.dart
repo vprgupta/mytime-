@@ -116,29 +116,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   _buildSlide(
                     index: 0,
                     icon: Icons.hourglass_empty_rounded,
-                    title: 'Take Back Your Time',
-                    description: 'Regain control over your digital life. MyTime helps you focus on what truly matters by managing your screen time effectively.',
+                    title: 'Welcome to MyTime! 🎉',
+                    description: 'Take control of your digital life. MyTime helps you focus on what truly matters.',
                     color: AppColors.primaryBlue,
                   ),
                   _buildSlide(
                     index: 1,
                     icon: Icons.block_rounded,
-                    title: 'Block Distractions',
-                    description: 'Select distracting apps and block them instantly. Create schedules to automate your focus hours and boost productivity.',
+                    title: 'Block Distracting Apps 🚫',
+                    description: 'Select distracting apps and block them instantly. Create schedules to automate your focus hours.\n\n📱 Example: Block Instagram during study time!',
                     color: AppColors.warningOrange,
                   ),
                   _buildSlide(
                     index: 2,
                     icon: Icons.lock_outline_rounded,
-                    title: 'Stay Committed',
-                    description: 'Need extra discipline? Use "Commitment Mode" to prevent uninstallation and strictly enforce your limits. No cheating allowed!',
+                    title: 'Stay Committed 💪',
+                    description: 'Need extra discipline? Use "Commitment Mode" to prevent uninstallation and strictly enforce your limits.\n\n⚠️ Once activated, no changes allowed until time expires!',
                     color: AppColors.dangerRed,
                   ),
                   _buildSlide(
                     index: 3,
                     icon: Icons.security_rounded,
-                    title: 'Your Data is Safe',
-                    description: 'We respect your privacy. All blocking logic runs locally on your device. We do not sell or share your personal usage data.',
+                    title: 'Your Data is Safe 🔒',
+                    description: 'We respect your privacy. All blocking logic runs locally on your device. We never share or sell your personal data.',
                     color: AppColors.successGreen,
                     extraContent: Container(
                       margin: const EdgeInsets.only(top: 24),
@@ -311,7 +311,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'To work effectively, MyTime needs a few permissions. You can grant them now or later.',
+            'MyTime needs a few permissions to work effectively. You can grant them now or later.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textSecondary),
           ),
@@ -331,7 +331,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 16),
           _buildPermissionItem(
             'Accessibility Service',
-            'To block apps and prevent distraction.',
+            'To block apps and prevent distractions.',
             _accessibilityGranted,
             () async {
               await _channel.invokeMethod('openAccessibilitySettings');

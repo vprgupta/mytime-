@@ -3,6 +3,7 @@ import 'package:mytime/core/config/navigation_service.dart';
 import 'package:mytime/features/app_blocking_new/screens/app_blocking_screen_v2.dart';
 import 'package:mytime/features/app_blocking_new/screens/app_selection_screen_v2.dart';
 import 'package:mytime/features/app_blocking_new/screens/permission_setup_screen_v2.dart';
+import 'package:mytime/features/app_blocking_new/screens/about_app_screen.dart';
 import 'package:mytime/features/onboarding/screens/onboarding_screen.dart';
 import 'package:mytime/features/onboarding/screens/splash_screen.dart';
 
@@ -16,6 +17,7 @@ class AppRoutes {
   static const String appBlocking = '/app-blocking';
   static const String appSelection = '/app-selection';
   static const String permissionSetup = '/permission-setup';
+  static const String aboutApp = '/about';
   static const String bypassAttempts = '/bypass-attempts';
   static const String blockingOverlay = '/blocking-overlay';
 
@@ -47,6 +49,10 @@ class AppRoutes {
       GoRoute(
         path: permissionSetup,
         builder: (context, state) => const PermissionSetupScreenV2(),
+      ),
+      GoRoute(
+        path: aboutApp,
+        builder: (context, state) => const AboutAppScreen(),
       ),
       GoRoute(
         path: bypassAttempts,

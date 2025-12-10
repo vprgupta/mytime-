@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lottie/lottie.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/modern_card.dart';
 import '../../../core/widgets/gradient_button.dart';
@@ -106,6 +107,13 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
         ),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: AppColors.textSecondary),
+            onPressed: () {
+              context.go('/about');
+            },
+            tooltip: 'About',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
             onPressed: () => context.read<AppBlockingProviderV2>().refreshData(),

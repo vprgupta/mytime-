@@ -113,17 +113,55 @@ class InstalledAppsService {
 
   bool _isSystemApp(AppInfo app) {
     // Check if it's marked as system app
-    // Check if it's marked as system app
     // Note: systemApp property not available in current AppInfo model
     
-    // Additional checks for system apps
+    // Whitelist of Google apps that users WANT to block (not system apps)
+    final userFacingGoogleApps = [
+      // Chrome variants
+      'com.android.chrome',                  // Chrome (standard)
+      'com.google.android.apps.chrome',      // Chrome (Google variant)
+      'com.chrome.beta',                     // Chrome Beta
+      'com.chrome.dev',                      // Chrome Dev
+      'com.chrome.canary',                   // Chrome Canary
+      
+      // Other browsers
+      'com.heytap.browser',                  // Oppo Browser
+      'com.sec.android.app.sbrowser',        // Samsung Internet
+      'org.mozilla.firefox',                 // Firefox
+      'com.opera.browser',                   // Opera
+      'com.opera.mini.native',               // Opera Mini
+      'com.brave.browser',                   // Brave
+      'com.microsoft.emmx',                  // Edge
+      
+      // Google apps
+      'com.google.android.youtube',          // YouTube
+      'com.google.android.gm',               // Gmail
+      'com.google.android.apps.maps',        // Maps
+      'com.google.android.apps.photos',      // Photos
+      'com.google.android.apps.messaging',   // Messages
+      'com.google.android.apps.docs',        // Docs
+      'com.google.android.apps.tachyon',     // Duo
+      'com.google.android.talk',             // Hangouts
+      'com.google.android.apps.youtube.music', // YouTube Music
+      'com.google.android.play.games',       // Play Games
+    ];
+    
+    // If it's a user-facing Google app, it's NOT a system app
+    if (userFacingGoogleApps.contains(app.packageName)) {
+      return false;
+    }
+    
+    // Filter out actual system apps
     final systemPackagePrefixes = [
-      'com.android.',
-      'com.google.android.',
-      'android.',
-      'com.samsung.',
-      'com.sec.',
-      'com.qualcomm.',
+      'com.android.',                        // Android system
+      'android.',                            // Android core
+      'com.samsung.',                        // Samsung system
+      'com.sec.',                            // Samsung security
+      'com.qualcomm.',                       // Qualcomm
+      'com.google.android.gsf',              // Google Services Framework
+      'com.google.android.gms',              // Google Play Services
+      'com.google.android.packageinstaller', // Package installer
+      'com.google.android.permissioncontroller', // Permission controller
     ];
     
     return systemPackagePrefixes.any((prefix) => app.packageName.startsWith(prefix));

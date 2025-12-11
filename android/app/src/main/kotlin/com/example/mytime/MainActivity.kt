@@ -375,6 +375,36 @@ class MainActivity : FlutterActivity() {
                     }
                     result.success(null)
                 }
+                "setLaunchLimit" -> {
+                    val packageName = call.argument<String>("packageName")
+                    val limit = call.argument<Int>("limit")
+                    
+                    if (packageName != null && limit != null) {
+                        AppBlockingAccessibilityService.setLaunchLimit(packageName, limit)
+                        android.util.Log.d("MainActivity", "📊 Set launch limit for $packageName: $limit times/day")
+                        result.success(true)
+                    } else {
+                        result.success(false)
+                    }
+                }
+                "getLaunchCount" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName != null) {
+                        val count = AppBlockingAccessibilityService.getLaunchCount(packageName)
+                        result.success(count)
+                    } else {
+                        result.success(0)
+                    }
+                }
+                "getLaunchLimit" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName != null) {
+                        val limit = AppBlockingAccessibilityService.getLaunchLimit(packageName)
+                        result.success(limit)
+                    } else {
+                        result.success(0)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }

@@ -270,4 +270,46 @@ class AppBlockingServiceV2 {
       return Duration.zero;
     }
   }
+
+  // Launch Counter Methods
+
+  /// Set daily launch limit for an app
+  Future<bool> setLaunchLimit(String packageName, int limit) async {
+    try {
+      final result = await _channel.invokeMethod<bool>('setLaunchLimit', {
+        'packageName': packageName,
+        'limit': limit,
+      });
+      return result ?? false;
+    } catch (e) {
+      debugPrint('Error setting launch limit: $e');
+      return false;
+    }
+  }
+
+  /// Get current launch count for an app today
+  Future<int> getLaunchCount(String packageName) async {
+    try {
+      final result = await _channel.invokeMethod<int>('getLaunchCount', {
+        'packageName': packageName,
+      });
+      return result ?? 0;
+    } catch (e) {
+      debugPrint('Error getting launch count: $e');
+      return 0;
+    }
+  }
+
+  /// Get launch limit for an app
+  Future<int> getLaunchLimit(String packageName) async {
+    try {
+      final result = await _channel.invokeMethod<int>('getLaunchLimit', {
+        'packageName': packageName,
+      });
+      return result ?? 0;
+    } catch (e) {
+      debugPrint('Error getting launch limit: $e');
+      return 0;
+    }
+  }
 }

@@ -30,7 +30,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 
                 // Check again in 10 seconds (adaptive check)
                 handler.postDelayed(this, 10000)
-            }
+           }
         }
     }
     
@@ -45,7 +45,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     MainActivity.isCommitmentActive = false
                 }
             } catch (e: Exception) {
-                android.util.Log.e("AccessibilityService", "Error checking commitment expiry: ${e.message}")
+                // Ignore errors during commitment check
             }
             
             // Schedule next check in 1 minute
@@ -64,7 +64,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         
         @JvmStatic
         fun removeBlockedApp(packageName: String) {
-            android.util.Log.d("AccessibilityService", "✅ Removed blocked app: $packageName")
+           android.util.Log.d("AccessibilityService", "✅ Removed blocked app: $packageName")
         }
         
         @JvmStatic
@@ -82,7 +82,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             // Immediate check
             if (usedMinutes >= limitMinutes) {
                 addBlockedApp(packageName)
-                instance?.let { service ->
+               instance?.let { service ->
                     if (service.currentLimitedApp == packageName) {
                         service.triggerGlobalActionHome()
                     }
@@ -92,11 +92,69 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         
         var instance: AppBlockingAccessibilityService? = null
         
+        // Launch Counter State
+        private val launchCounts = mutableMapOf<String, Int>()
+        private val launchLimits = mutableMapOf<String, Int>()
+        private var currentDate = getCurrentDate()
+        
+        @JvmStatic
+        private fun getCurrentDate(): String {
+            val calendar = java.util.Calendar.getInstance()
+           return "${calendar.get(java.util.Calendar.YEAR)}-${calendar.get(java.util.Calendar.MONTH)+1}-${calendar.get(java.util.Calendar.DAY_OF_MONTH)}"
+        }
+        
+        @JvmStatic
+        fun setLaunchLimit(packageName: String, limit: Int) {
+            launchLimits[packageName] = limit
+            android.util.Log.d("AccessibilityService", "📊 Set launch limit for $packageName: $limit times/day")
+        }
+        
+        @JvmStatic
+        fun getLaunchCount(packageName: String): Int {
+            checkAndResetIfNewDay()
+            return launchCounts.getOrDefault(packageName, 0)
+        }
+        
+        @JvmStatic
+        fun getLaunchLimit(packageName: String): Int {
+            return launchLimits.getOrDefault(packageName, 0)
+       }
+        
+        @JvmStatic
+        private fun checkAndResetIfNewDay() {
+            val today = getCurrentDate()
+            if (today != currentDate) {
+                android.util.Log.d("AccessibilityService", "🌅 New day detected - resetting launch counters")
+                launchCounts.clear()
+                currentDate = today
+            }
+        }
+        
+        @JvmStatic
+        fun onAppLaunched(packageName: String): Boolean {
+            checkAndResetIfNewDay()
+            
+            val limit = launchLimits.getOrDefault(packageName, 0)
+            if (limit <= 0) return false // No limit set
+           
+            val count = launchCounts.getOrDefault(packageName, 0) + 1
+            launchCounts[packageName] = count
+            
+            android.util.Log.d("AccessibilityService", "📱 App launched: $packageName ($count/$limit)")
+            
+            if (count > limit) {
+                android.util.Log.d("AccessibilityService", "🚫 Launch limit exceeded for $packageName")
+                return true // Block
+            }
+            
+            return false // Allow
+        }
+        
         // Scheduler State
         data class TimeSchedule(val startHour: Int, val startMinute: Int, val endHour: Int, val endMinute: Int, val isEnabled: Boolean)
         val scheduledApps = mutableMapOf<String, TimeSchedule>()
         
-        @JvmStatic
+       @JvmStatic
         fun setAppSchedule(packageName: String, startHour: Int, startMinute: Int, endHour: Int, endMinute: Int, isEnabled: Boolean) {
             scheduledApps[packageName] = TimeSchedule(startHour, startMinute, endHour, endMinute, isEnabled)
             android.util.Log.d("AccessibilityService", "📅 Schedule set for $packageName: $startHour:$startMinute-$endHour:$endMinute (enabled=$isEnabled)")
@@ -114,7 +172,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             val prefs = applicationContext.getSharedPreferences("UsageLimits", Context.MODE_PRIVATE)
             val editor = prefs.edit()
             
-            val limit = MainActivity.usageLimits[packageName] ?: 0
+           val limit = MainActivity.usageLimits[packageName] ?: 0
             val used = MainActivity.usageToday[packageName] ?: 0
             val accumulated = MainActivity.accumulatedUsage[packageName] ?: 0L
             
@@ -132,7 +190,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     private fun restoreUsageStats() {
         try {
             val prefs = applicationContext.getSharedPreferences("UsageLimits", Context.MODE_PRIVATE)
-            val all = prefs.all
+           val all = prefs.all
             
             var restoredCount = 0
             all.keys.forEach { key ->
@@ -150,7 +208,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     restoredCount++
                 }
             }
-            
+           
             if (restoredCount > 0) {
                 android.util.Log.d("AccessibilityService", "♻️ Restored usage stats for $restoredCount apps")
             }
@@ -168,7 +226,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         
         android.util.Log.d("AccessibilityService", "⏳ Usage for $packageName: $newUsage/$limit minutes")
         
-        // Save state
+       // Save state
         saveUsageStats(packageName)
         
         // Notify Flutter to keep UI in sync
@@ -186,7 +244,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     }
     
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null) return
+       if (event == null) return
         
         val packageName = event.packageName?.toString()
         
@@ -204,7 +262,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         }
         
         // 3. Check usage limited apps - instant blocking when limit reached
-        if (MainActivity.limitedPackages.contains(packageName)) {
+       if (MainActivity.limitedPackages.contains(packageName)) {
             val currentUsage = MainActivity.usageToday[packageName] ?: 0
             val limit = MainActivity.usageLimits[packageName] ?: Int.MAX_VALUE
             if (currentUsage >= limit) {
@@ -213,6 +271,16 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 return
             }
         }
+        
+        // 4. Check launch limited apps - block if daily launch limit exceeded
+        if (packageName != null) {
+            val shouldBlock = onAppLaunched(packageName)
+            if (shouldBlock) {
+                android.util.Log.d("AccessibilityService", "🚫 Blocking $packageName - launch limit exceeded")
+                triggerGlobalActionHome(true)
+                return
+            }
+       }
         
         // CRITICAL SECURITY: Always process events from Settings or Package Installer immediately (No Debounce)
         // This prevents race conditions where a user taps fast or switches apps quickly

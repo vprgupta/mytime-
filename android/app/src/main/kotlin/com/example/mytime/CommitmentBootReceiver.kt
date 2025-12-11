@@ -37,7 +37,6 @@ class CommitmentBootReceiver : BroadcastReceiver() {
                 // STEP 1: Verify accessibility service is enabled
                 if (!isAccessibilityServiceEnabled(context)) {
                     Log.w(TAG, "⚠️ Accessibility service NOT enabled - user must re-enable")
-                    showAccessibilityWarning(context)
                 } else {
                     Log.d(TAG, "✅ Accessibility service is enabled")
                 }
@@ -46,7 +45,6 @@ class CommitmentBootReceiver : BroadcastReceiver() {
                 if (!isDeviceAdminActive(context)) {
                     Log.w(TAG, "⚠️ Device Admin NOT active - attempting to restore")
                     // Cannot auto-enable, but log for user notification
-                    showDeviceAdminWarning(context)
                 } else {
                     Log.d(TAG, "✅ Device Admin is active")
                 }

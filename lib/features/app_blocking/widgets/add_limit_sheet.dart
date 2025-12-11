@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 class AddLimitSheet extends StatefulWidget {
   final List<AppInfo> availableApps;
   final List<AppUsageLimit> existingLimits;
-  final Function(String packageName, String appName, int limitMinutes, int durationDays, bool enableCommitment) onLimitAdded;
+  final Function(String packageName, String appName, int limitMinutes, int durationDays, bool enableCommitment, {int? maxLaunches}) onLimitAdded;
 
   const AddLimitSheet({
     super.key,
@@ -24,6 +24,8 @@ class _AddLimitSheetState extends State<AddLimitSheet> {
   int _limitMinutes = 60;
   int _durationDays = -1; // -1 means indefinite
   bool _enableCommitment = false;
+  bool _enableLaunchLimit = false;
+  int _maxLaunches = 10;
   String _searchQuery = '';
 
   @override
@@ -38,9 +40,10 @@ class _AddLimitSheetState extends State<AddLimitSheet> {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Header
           Row(
             children: [
@@ -137,6 +140,117 @@ class _AddLimitSheetState extends State<AddLimitSheet> {
                   ),
                 );
               }).toList(),
+            ),
+            const SizedBox(height: 24),
+
+            // Launch Limit Section
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _enableLaunchLimit 
+                    ? AppColors.primaryBlue.withValues(alpha: 0.1)
+                    : AppColors.surfaceDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _enableLaunchLimit 
+                      ? AppColors.primaryBlue.withValues(alpha: 0.3)
+                      : AppColors.border.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.touch_app,
+                        color: _enableLaunchLimit ? AppColors.primaryBlue : AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Daily Launch Limit',
+                              style: TextStyle(
+                                color: _enableLaunchLimit ? AppColors.primaryBlue : AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Limit how many times app can be opened',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: _enableLaunchLimit,
+                        onChanged: (value) => setState(() => _enableLaunchLimit = value),
+                        activeColor: AppColors.primaryBlue,
+                      ),
+                    ],
+                  ),
+                  if (_enableLaunchLimit) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Maximum Opens Per Day',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [5, 10, 15, 20, 25, 30].map((launches) {
+                        final isSelected = _maxLaunches == launches;
+                        return ChoiceChip(
+                          label: Text('$launches'),
+                          selected: isSelected,
+                          onSelected: (selected) => setState(() => _maxLaunches = launches),
+                          selectedColor: AppColors.primaryBlue,
+                          backgroundColor: AppColors.surfaceDark,
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : AppColors.textSecondary,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.info_outline, size: 16, color: AppColors.primaryBlue),
+                          const SizedBox(width: 8),
+                          Text(
+                            'App can be opened $_maxLaunches times per day',
+                            style: const TextStyle(
+                              color: AppColors.primaryBlue,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: 24),
 
@@ -245,6 +359,7 @@ class _AddLimitSheetState extends State<AddLimitSheet> {
                       _limitMinutes,
                       _durationDays,
                       _enableCommitment,
+                      maxLaunches: _enableLaunchLimit ? _maxLaunches : null,
                     );
                   }
                 },
@@ -272,7 +387,10 @@ class _AddLimitSheetState extends State<AddLimitSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            Expanded(
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
               child: filteredApps.isEmpty
                   ? const Center(
                       child: Text(
@@ -281,6 +399,7 @@ class _AddLimitSheetState extends State<AddLimitSheet> {
                       ),
                     )
                   : ListView.builder(
+                      shrinkWrap: true,
                       itemCount: filteredApps.length,
                       itemBuilder: (context, index) {
                         final app = filteredApps[index];
@@ -308,6 +427,7 @@ class _AddLimitSheetState extends State<AddLimitSheet> {
             ),
           ],
         ],
+      ),
       ),
     );
   }

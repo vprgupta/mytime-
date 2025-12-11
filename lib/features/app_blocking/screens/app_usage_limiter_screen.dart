@@ -6,6 +6,7 @@ import 'package:installed_apps/app_info.dart';
 import '../models/app_usage_limit.dart';
 import '../services/app_usage_limiter_service.dart';
 import '../services/installed_apps_service.dart';
+import '../services/app_blocking_service_v2.dart';
 import '../../../core/theme/app_colors.dart';
 import '../widgets/add_limit_sheet.dart';
 
@@ -25,6 +26,8 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
   List<AppInfo> _availableApps = [];
   bool _isLoading = true;
   Map<String, Uint8List?> _appIcons = {};
+  Map<String, int> _launchCounts = {}; // Launch counts per app
+  Map<String, int> _launchLimits = {}; // Launch limits per app
 
   @override
   void initState() {
@@ -48,12 +51,41 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
       _limits = _limiterService.getAllLimits();
       _availableApps = await _appsService.getUserApps();
       
+      // Fetch launch counts for each limited app in parallel
+      final blockingService = AppBlockingServiceV2();
+      
+      // Create lists of futures for parallel execution
+      final iconFutures = <Future<void>>[];
+      final launchCountFutures = <Future<void>>[];
+      
       for (var limit in _limits) {
+        // Fetch icon if not cached
         if (!_appIcons.containsKey(limit.packageName)) {
-          final icon = await _appsService.getAppIcon(limit.packageName);
-          _appIcons[limit.packageName] = icon;
+          iconFutures.add(
+            _appsService.getAppIcon(limit.packageName).then((icon) {
+              _appIcons[limit.packageName] = icon;
+            }).catchError((_) {})
+          );
         }
+        
+        // Fetch launch count and limit in parallel
+        launchCountFutures.add(
+          Future.wait([
+            blockingService.getLaunchCount(limit.packageName),
+            blockingService.getLaunchLimit(limit.packageName),
+          ]).then((results) {
+            _launchCounts[limit.packageName] = results[0];
+            _launchLimits[limit.packageName] = results[1];
+          }).catchError((_) {})
+        );
       }
+      
+      // Wait for all futures to complete in parallel
+      await Future.wait([
+        ...iconFutures,
+        ...launchCountFutures,
+      ]);
+      
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -276,6 +308,17 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
     final progress = (limit.usedMinutesToday / limit.currentLimitMinutes).clamp(0.0, 1.0);
     final progressColor = _getProgressColor(limit);
     final icon = _appIcons[limit.packageName];
+    
+    // Get launch counter data
+    final launchCount = _launchCounts[limit.packageName] ?? 0;
+    final launchLimit = _launchLimits[limit.packageName] ?? 0;
+    final hasLaunchLimit = launchLimit > 0;
+    final launchProgress = hasLaunchLimit ? (launchCount / launchLimit).clamp(0.0, 1.0) : 0.0;
+    final launchColor = hasLaunchLimit && launchCount >= launchLimit 
+        ? AppColors.dangerRed 
+        : hasLaunchLimit && launchProgress >= 0.7 
+            ? AppColors.warningOrange 
+            : AppColors.primaryBlue;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -349,7 +392,7 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                // Progress Bar
+                // Time Limit Progress Bar
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
@@ -359,7 +402,7 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
                     minHeight: 6,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -380,6 +423,46 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
                     ),
                   ],
                 ),
+                // Launch Counter (if limit is set)
+                if (hasLaunchLimit) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: launchProgress,
+                      backgroundColor: AppColors.surfaceDark,
+                      valueColor: AlwaysStoppedAnimation<Color>(launchColor),
+                      minHeight: 6,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.touch_app, size: 14, color: launchColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Opens: $launchCount / $launchLimit',
+                            style: TextStyle(
+                              color: launchColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '${launchLimit - launchCount} left',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -462,14 +545,14 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
+        initialChildSize: 0.95, // Increased to accommodate launch limit UI
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
         builder: (context, scrollController) => AddLimitSheet(
           availableApps: _availableApps,
           existingLimits: _limits,
-          onLimitAdded: (packageName, appName, limitMinutes, durationDays, enableCommitment) async {
+          onLimitAdded: (packageName, appName, limitMinutes, durationDays, enableCommitment, {int? maxLaunches}) async {
             await _limiterService.setAppLimit(
               packageName, 
               appName, 
@@ -477,6 +560,13 @@ class _AppUsageLimiterScreenState extends State<AppUsageLimiterScreen> {
               durationDays: durationDays,
               hasCommitment: enableCommitment,
             );
+            
+            // Set launch limit if specified
+            if (maxLaunches != null && maxLaunches > 0) {
+              final blockingService = AppBlockingServiceV2();
+              await blockingService.setLaunchLimit(packageName, maxLaunches);
+            }
+            
             _loadData();
             if (mounted) Navigator.pop(context);
           },

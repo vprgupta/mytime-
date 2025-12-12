@@ -722,16 +722,32 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     // STEP 2: COMPLETE BLOCKING - Block entire MyTime settings screen during commitment
                     // This prevents force stop, clear data, uninstall, and all other dangerous actions
                     if (isMyTimeScreen && (packageName.contains("settings") || packageName.contains("systemui"))) {
-                        android.util.Log.e("AccessibilityService", "🚨 BLOCKED: MyTime settings screen during commitment mode!")
-                        showCommitmentWarning()
                         
-                        // TRIPLE BLOCK - send home 3 times rapidly for maximum reliability
-                        triggerGlobalActionHome(true)
-                        handler.postDelayed({ triggerGlobalActionHome(false) }, 50)
-                        handler.postDelayed({ triggerGlobalActionHome(false) }, 100)
+                        // Refined check: Ensure we are actually on an App Info/Details screen, NOT just a list/search result
+                        // We check for keywords typical of the App Info page
+                        val isAppInfoPage = combinedText.contains("force stop") || 
+                                           combinedText.contains("force close") ||
+                                           combinedText.contains("uninstall") || 
+                                           combinedText.contains("disable") ||
+                                           combinedText.contains("open") ||
+                                           combinedText.contains("storage") ||
+                                           combinedText.contains("permissions") ||
+                                           combinedText.contains("notifications") ||
+                                           combinedText.contains("app info") ||
+                                           combinedText.contains("application info")
                         
-                        android.util.Log.e("AccessibilityService", "🛡️ BLOCKED MyTime settings - sent home 3x")
-                        return
+                        if (isAppInfoPage) {
+                            android.util.Log.e("AccessibilityService", "🚨 BLOCKED: MyTime App Info screen detected!")
+                            showCommitmentWarning()
+                            
+                            // TRIPLE BLOCK - send home 3 times rapidly for maximum reliability
+                            triggerGlobalActionHome(true)
+                            handler.postDelayed({ triggerGlobalActionHome(false) }, 50)
+                            handler.postDelayed({ triggerGlobalActionHome(false) }, 100)
+                            
+                            android.util.Log.e("AccessibilityService", "🛡️ BLOCKED MyTime settings - sent home 3x")
+                            return
+                        }
                     }
                     
                     // Separate check: Always block accessibility settings for MyTime

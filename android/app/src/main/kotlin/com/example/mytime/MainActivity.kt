@@ -405,6 +405,16 @@ class MainActivity : FlutterActivity() {
                         result.success(0)
                     }
                 }
+                "removeLaunchLimit" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName != null) {
+                        AppBlockingAccessibilityService.removeLaunchLimit(packageName)
+                        android.util.Log.d("MainActivity", "🗑️ Removed launch limit for $packageName")
+                        result.success(true)
+                    } else {
+                        result.success(false)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }

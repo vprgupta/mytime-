@@ -15,6 +15,10 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     private val isProcessing = AtomicBoolean(false)
     private var currentLimitedApp: String? = null
     
+    // Launch counter state tracking
+    private var lastLaunchedApp: String? = null
+    private var lastLaunchTime = 0L
+    
     // Usage Limiter Logic
     private var usageTrackingStartTime = 0L
     private val usageUpdateRunnable = object : Runnable {
@@ -125,8 +129,18 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             val today = getCurrentDate()
             if (today != currentDate) {
                 android.util.Log.d("AccessibilityService", "🌅 New day detected - resetting launch counters")
+                
+                // Unblock apps that were blocked due to launch limits
+                val appsToUnblock = launchLimits.keys.toList()
+                for (packageName in appsToUnblock) {
+                    MainActivity.blockedPackages.remove(packageName)
+                    android.util.Log.d("AccessibilityService", "✅ Unblocked $packageName for new day")
+                }
+                
                 launchCounts.clear()
                 currentDate = today
+                // Persist the date change
+                instance?.saveCurrentDate()
             }
         }
         
@@ -135,19 +149,40 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             checkAndResetIfNewDay()
             
             val limit = launchLimits.getOrDefault(packageName, 0)
-            if (limit <= 0) return false // No limit set
+            if (limit <= 0) {
+                // No limit set for this app, don't count it
+                return false
+            }
            
             val count = launchCounts.getOrDefault(packageName, 0) + 1
             launchCounts[packageName] = count
             
+            // Persist the updated count immediately
+            instance?.saveLaunchCount(packageName, count)
+            
             android.util.Log.d("AccessibilityService", "📱 App launched: $packageName ($count/$limit)")
             
             if (count > limit) {
-                android.util.Log.d("AccessibilityService", "🚫 Launch limit exceeded for $packageName")
+                android.util.Log.d("AccessibilityService", "🚫 Launch limit exceeded for $packageName - adding to blocked list")
+                // Add to blocked packages so it stays blocked for the rest of the day
+                MainActivity.blockedPackages.add(packageName)
+                addBlockedApp(packageName)
                 return true // Block
             }
             
             return false // Allow
+        }
+        
+        @JvmStatic
+        fun removeLaunchLimit(packageName: String) {
+            launchLimits.remove(packageName)
+            launchCounts.remove(packageName)
+            instance?.clearLaunchCount(packageName)
+            
+            // Remove from blocked list if it was blocked due to launch limit
+            MainActivity.blockedPackages.remove(packageName)
+            
+            android.util.Log.d("AccessibilityService", "🗑️ Removed launch limit for $packageName and unblocked if necessary")
         }
         
         // Scheduler State
@@ -217,6 +252,80 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         }
     }
     
+    private fun saveLaunchCount(packageName: String, count: Int) {
+        try {
+            val prefs = applicationContext.getSharedPreferences("LaunchLimits", Context.MODE_PRIVATE)
+            val editor = prefs.edit()
+            editor.putInt("count_$packageName", count)
+            editor.apply()
+            android.util.Log.v("AccessibilityService", "💾 Saved launch count for $packageName: $count")
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to save launch count: ${e.message}")
+        }
+    }
+    
+    private fun clearLaunchCount(packageName: String) {
+        try {
+            val prefs = applicationContext.getSharedPreferences("LaunchLimits", Context.MODE_PRIVATE)
+            prefs.edit().remove("count_$packageName").apply()
+            android.util.Log.v("AccessibilityService", "🗑️ Cleared launch count for $packageName")
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to clear launch count: ${e.message}")
+        }
+    }
+    
+    private fun restoreLaunchCounts() {
+        try {
+            val prefs = applicationContext.getSharedPreferences("LaunchLimits", Context.MODE_PRIVATE)
+            
+            // Check if we need to reset for a new day
+            val savedDate = prefs.getString("current_date", "")
+            val today = AppBlockingAccessibilityService.getCurrentDate()
+            
+            if (savedDate != today) {
+                // New day - clear all counts
+                android.util.Log.d("AccessibilityService", "🌅 New day detected ($savedDate -> $today) - clearing launch counts")
+                val editor = prefs.edit()
+                editor.clear()
+                editor.putString("current_date", today)
+                editor.apply()
+                AppBlockingAccessibilityService.currentDate = today
+                return
+            }
+            
+            // Same day - restore counts
+            val all = prefs.all
+            var restoredCount = 0
+            
+            all.keys.forEach { key ->
+                if (key.startsWith("count_")) {
+                    val packageName = key.removePrefix("count_")
+                    val count = prefs.getInt(key, 0)
+                    AppBlockingAccessibilityService.launchCounts[packageName] = count
+                    restoredCount++
+                }
+            }
+            
+            if (restoredCount > 0) {
+                android.util.Log.d("AccessibilityService", "♻️ Restored launch counts for $restoredCount apps")
+            }
+            
+            AppBlockingAccessibilityService.currentDate = today
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to restore launch counts: ${e.message}")
+        }
+    }
+    
+    private fun saveCurrentDate() {
+        try {
+            val prefs = applicationContext.getSharedPreferences("LaunchLimits", Context.MODE_PRIVATE)
+            prefs.edit().putString("current_date", AppBlockingAccessibilityService.currentDate).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to save current date: ${e.message}")
+        }
+    }
+
+    
     private fun incrementUsage(packageName: String) {
         val currentUsage = MainActivity.usageToday[packageName] ?: 0
         val newUsage = currentUsage + 1
@@ -272,15 +381,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             }
         }
         
-        // 4. Check launch limited apps - block if daily launch limit exceeded
-        if (packageName != null) {
-            val shouldBlock = onAppLaunched(packageName)
-            if (shouldBlock) {
-                android.util.Log.d("AccessibilityService", "🚫 Blocking $packageName - launch limit exceeded")
-                triggerGlobalActionHome(true)
-                return
-            }
-       }
+        // 4. Launch counter moved to processEvent() to only count actual app launches
         
         // CRITICAL SECURITY: Always process events from Settings or Package Installer immediately (No Debounce)
         // This prevents race conditions where a user taps fast or switches apps quickly
@@ -358,6 +459,35 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             // 0. WHITELIST: Never block MyTime itself
             if (packageName == "com.example.mytime") {
                 return
+            }
+            
+            // 0.5 LAUNCH COUNTER: Only count actual app launches (not every event)
+            // Only increment when window state changes AND it's a different app or enough time has passed
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                val now = System.currentTimeMillis()
+                
+                // Only count as new launch if:
+                // 1. Different app AND at least 500ms since last count (prevents rapid switching noise), OR
+                // 2. Same app but more than 2 seconds since last count (counts background->foreground as new launch)
+                val isDifferentApp = packageName != lastLaunchedApp
+                val timeSinceLastCount = now - lastLaunchTime
+                
+                val shouldCount = if (isDifferentApp) {
+                    timeSinceLastCount > 500  // Different app: require 500ms gap
+                } else {
+                    timeSinceLastCount > 2000  // Same app: require 2 second gap (counts background resumes)
+                }
+                
+                if (shouldCount) {
+                    val shouldBlock = onAppLaunched(packageName)
+                    if (shouldBlock) {
+                        android.util.Log.d("AccessibilityService", "🚫 Blocking $packageName - launch limit exceeded")
+                        triggerGlobalActionHome(true)
+                        return
+                    }
+                    lastLaunchedApp = packageName
+                    lastLaunchTime = now
+                }
             }
             
             // 1. Check if this is a blocked app (Manual Block)
@@ -589,42 +719,19 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     }
                     
                     
-                    // STEP 2: IMMEDIATE BLOCKING when Force Stop button becomes VISIBLE
-                    // Don't wait for click - block as soon as button appears on screen
-                    if (isMyTimeScreen) {
-                        android.util.Log.d("AccessibilityService", "🔍 MyTime detected in ${packageName}: $combinedText")
+                    // STEP 2: COMPLETE BLOCKING - Block entire MyTime settings screen during commitment
+                    // This prevents force stop, clear data, uninstall, and all other dangerous actions
+                    if (isMyTimeScreen && (packageName.contains("settings") || packageName.contains("systemui"))) {
+                        android.util.Log.e("AccessibilityService", "🚨 BLOCKED: MyTime settings screen during commitment mode!")
+                        showCommitmentWarning()
                         
-                        // Check if Force Stop or other dangerous buttons are VISIBLE
-                        val hasDangerousButton = 
-                            // Force stop button visible
-                            combinedText.contains("force stop") ||
-                            combinedText.contains("force close") ||
-                            
-                            // Uninstall button visible
-                            combinedText.contains("uninstall") ||
-                            
-                            // Clear data/storage visible
-                            combinedText.contains("clear data") ||
-                            combinedText.contains("clear storage") ||
-                            combinedText.contains("storage usage") ||
-                            
-                            // Disable button visible
-                            combinedText.contains("disable") ||
-                            combinedText.contains("turn off app")
+                        // TRIPLE BLOCK - send home 3 times rapidly for maximum reliability
+                        triggerGlobalActionHome(true)
+                        handler.postDelayed({ triggerGlobalActionHome(false) }, 50)
+                        handler.postDelayed({ triggerGlobalActionHome(false) }, 100)
                         
-                        // If in settings AND dangerous buttons visible, block IMMEDIATELY
-                        if ((packageName.contains("settings") || packageName.contains("systemui")) && hasDangerousButton) {
-                            android.util.Log.e("AccessibilityService", "🚨 CRITICAL: Force Stop button visible for MyTime!")
-                            showCommitmentWarning()
-                            
-                            // TRIPLE BLOCK - send home 3 times rapidly
-                            triggerGlobalActionHome(true)
-                            handler.postDelayed({ triggerGlobalActionHome(false) }, 50)
-                            handler.postDelayed({ triggerGlobalActionHome(false) }, 100)
-                            
-                            android.util.Log.e("AccessibilityService", "🛡️ BLOCKED before button click - sent home 3x")
-                            return
-                        }
+                        android.util.Log.e("AccessibilityService", "🛡️ BLOCKED MyTime settings - sent home 3x")
+                        return
                     }
                     
                     // Separate check: Always block accessibility settings for MyTime
@@ -858,7 +965,8 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
         restoreBlockedApps()
         restoreUsageStats() // Restore usage limits and progress
-        android.util.Log.d("AccessibilityService", "Service connected safely")
+        restoreLaunchCounts() // Restore launch counts and daily tracking
+        android.util.Log.d("AccessibilityService", "✅ Service connected and all data restored")
     }
     
     private fun restoreBlockedApps() {

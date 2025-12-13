@@ -657,6 +657,12 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                  packageName.contains("permission") || 
                                  packageName.contains("vending") ||
                                  packageName.contains("battery") ||  // Battery settings (all OEMs)
+                                 packageName.contains("power") ||     // Power/Battery management
+                                 packageName.contains("devicehealth") ||     // Samsung
+                                 packageName.contains("devicecare") ||       // Samsung One UI
+                                 packageName.contains("powerkeeper") ||      // Xiaomi MIUI
+                                 packageName.contains("powermonitor") ||     // OnePlus/ColorOS
+                                 packageName.contains("batteryoptimize") ||  // Generic
                                  // Samsung/OneUI
                                  packageName.contains("samsung") ||
                                  // Xiaomi/MIUI
@@ -778,6 +784,54 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                             android.util.Log.d("AccessibilityService", "🛡️ Blocked: MyTime Accessibility Settings")
                             triggerGlobalActionHome(true)
                             return
+                        }
+                    }
+                    
+                    // INSTANT BATTERY BLOCKING: Block MyTime battery detail page immediately on load
+                    // This prevents force-stopping through battery settings
+                    // Strategy: Block when it's a battery package AND MyTime is the main/focused app
+                    if (isMyTimeScreen) {
+                        val isBatteryPackage = packageName.contains("battery") ||
+                                              packageName.contains("power") ||
+                                              packageName.contains("devicecare") ||
+                                              packageName.contains("powerkeeper") ||
+                                              packageName.contains("powermonitor") ||
+                                              packageName.contains("settings")  // Also catch Settings app showing battery
+                        
+                        if (isBatteryPackage) {
+                            // Check if this is MyTime's DEDICATED page (not a list)
+                            // In a list: "MyTime", "Instagram", "Chrome" all appear together
+                            // In detail page: ONLY MyTime and its info appears
+                            
+                            // Count how many different apps are mentioned
+                            val windowText = try {
+                                val rootNode = rootInActiveWindow
+                                if (rootNode != null) getWindowText(rootNode).lowercase() else ""
+                            } catch (e: Exception) {
+                                ""
+                            }
+                            
+                            // If it's a list, multiple common app names will appear
+                            val commonAppCount = listOf(
+                                "instagram", "facebook", "whatsapp", "chrome", 
+                                "youtube", "gmail", "twitter", "telegram"
+                            ).count { windowText.contains(it) }
+                            
+                            // If less than 2 other apps mentioned, this is likely MyTime's detail page
+                            val isDetailPage = commonAppCount < 2
+                            
+                            // ALSO check for package name visibility - detail pages often show package name
+                            val hasPackageName = combinedText.contains("com.example.mytime") ||
+                                                windowText.contains("com.example.mytime")
+                            
+                            if (isDetailPage || hasPackageName) {
+                                android.util.Log.d("AccessibilityService", "🔋 INSTANT BLOCK: MyTime Battery Detail Page detected (commonApps=$commonAppCount, hasPkg=$hasPackageName)")
+                                showCommitmentWarning()
+                                triggerGlobalActionHome(true)
+                                return
+                            } else {
+                                android.util.Log.d("AccessibilityService", "✅ ALLOWED: Battery list page (multiple apps visible: $commonAppCount)")
+                            }
                         }
                     }
                     
@@ -1118,21 +1172,43 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     }
     
     /**
-     * Show a toast warning about active commitments
-     */
-    private fun showCommitmentWarning() {
-        try {
-            handler.post {
-                android.widget.Toast.makeText(
-                    applicationContext,
-                    "⚠️ Cannot modify app: Active commitments in place!",
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
+ * Show a toast warning about active commitments
+ */
+private fun showCommitmentWarning() {
+    try {
+        handler.post {
+            // Get remaining time for better UX
+            val remainingTime = try {
+                val manager = CommitmentModeManager(applicationContext)
+                manager.getRemainingTime()
+            } catch (e: Exception) {
+                0L
             }
-        } catch (e: Exception) {
-            android.util.Log.e("AccessibilityService", "Error showing warning", e)
+            
+            val message = if (remainingTime > 0) {
+                val hours = remainingTime / (1000 * 60 * 60)
+                val minutes = (remainingTime % (1000 * 60 * 60)) / (1000 * 60)
+                val timeStr = when {
+                    hours > 0 -> "${hours}h ${minutes}m"
+                    minutes > 0 -> "${minutes}m"
+                    else -> "few seconds"
+                }
+                "🔒 Commitment Mode Active ($timeStr remaining)\nCannot modify app settings!"
+            } else {
+                "⚠️ Cannot modify app: Active commitments in place!"
+            }
+            
+            android.widget.Toast.makeText(
+                applicationContext,
+                message,
+                android.widget.Toast.LENGTH_LONG
+            ).show()
         }
+    } catch (e: Exception) {
+        android.util.Log.e("AccessibilityService", "Error showing warning", e)
     }
+}
+    
     
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)

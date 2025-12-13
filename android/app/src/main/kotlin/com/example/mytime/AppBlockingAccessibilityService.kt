@@ -789,20 +789,20 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     
                     // INSTANT BATTERY BLOCKING: Block MyTime battery detail page immediately on load
                     // This prevents force-stopping through battery settings
-                    // Strategy: Block when it's a battery package AND MyTime is the main/focused app
+                    // CRITICAL: Only check battery blocking for ACTUAL battery packages, not Settings
+                    // This prevents interference with Settings search bar
                     if (isMyTimeScreen) {
+                        // STRICT CHECK: Only battery-specific packages, NOT general Settings
                         val isBatteryPackage = packageName.contains("battery") ||
                                               packageName.contains("power") ||
                                               packageName.contains("devicecare") ||
                                               packageName.contains("powerkeeper") ||
-                                              packageName.contains("powermonitor") ||
-                                              packageName.contains("settings")  // Also catch Settings app showing battery
+                                              packageName.contains("powermonitor")
+                        
+                        // DO NOT include "settings" here - causes search bar interference!
                         
                         if (isBatteryPackage) {
-                            // Check if this is MyTime's DEDICATED page (not a list)
-                            // In a list: "MyTime", "Instagram", "Chrome" all appear together
-                            // In detail page: ONLY MyTime and its info appears
-                            
+                            // Battery package detected - check if it's MyTime's detail page
                             // Count how many different apps are mentioned
                             val windowText = try {
                                 val rootNode = rootInActiveWindow
@@ -825,12 +825,12 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                                 windowText.contains("com.example.mytime")
                             
                             if (isDetailPage || hasPackageName) {
-                                android.util.Log.d("AccessibilityService", "🔋 INSTANT BLOCK: MyTime Battery Detail Page detected (commonApps=$commonAppCount, hasPkg=$hasPackageName)")
+                                android.util.Log.d("AccessibilityService", "🔋 INSTANT BLOCK: MyTime Battery Detail Page (commonApps=$commonAppCount, hasPkg=$hasPackageName)")
                                 showCommitmentWarning()
                                 triggerGlobalActionHome(true)
                                 return
                             } else {
-                                android.util.Log.d("AccessibilityService", "✅ ALLOWED: Battery list page (multiple apps visible: $commonAppCount)")
+                                android.util.Log.d("AccessibilityService", "✅ ALLOWED: Battery list page (multiple apps: $commonAppCount)")
                             }
                         }
                     }

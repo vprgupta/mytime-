@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.mytime"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36  // Updated to API 36 to support androidx.core:core-ktx:1.16.0
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -25,8 +25,8 @@ android {
         applicationId = "com.example.mytime"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 24  // Explicit minimum SDK
+        targetSdk = 36  // Updated to match compileSdk
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

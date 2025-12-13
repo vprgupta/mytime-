@@ -525,6 +525,37 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 }
             }
             
+            // 1.7 INSTANT APP INFO BLOCKING: Detect MyTime app info page immediately
+            // This catches Settings opening MyTime's app info ONLY on the details page
+            val hasAnyCommitmentEarly = checkForAnyActiveCommitments()
+            if (hasAnyCommitmentEarly && packageName.contains("settings")) {
+                // Check if this is specifically an App Details/Info activity
+                val className = event.className?.toString() ?: ""
+                val isAppDetailsActivity = className.contains("AppInfoDashboard") ||
+                                          className.contains("InstalledAppDetails") ||
+                                          className.contains("ApplicationInfo") ||
+                                          className.contains("AppDetails") ||
+                                          className.contains("ManageApplications")
+                
+                if (isAppDetailsActivity) {
+                    // Now check if it's specifically for MyTime
+                    val rootNode = rootInActiveWindow
+                    if (rootNode != null) {
+                        val windowText = getWindowText(rootNode).lowercase()
+                        val isMyTimeContext = windowText.contains("com.example.mytime") ||
+                                             (windowText.contains("mytime") && !windowText.contains("search"))
+                        
+                        if (isMyTimeContext) {
+                            android.util.Log.e("AccessibilityService", "🚨 INSTANT EARLY BLOCK: MyTime App Info page detected (class=$className)!")
+                            showCommitmentWarning()
+                            triggerGlobalActionHome(true)
+                            return
+                        }
+                    }
+                }
+            }
+            
+            
             // 2. Security Hardening: Block "Clear Data", "Disable Service", and "Uninstall"
             // Check for ANY active commitments (strict mode OR usage limiter)
             val hasAnyCommitment = checkForAnyActiveCommitments()
@@ -743,15 +774,9 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                            combinedText.contains("application info")
                         
                         if (isAppInfoPage) {
-                            android.util.Log.e("AccessibilityService", "🚨 BLOCKED: MyTime App Info screen detected!")
+                            android.util.Log.e("AccessibilityService", "🚨 INSTANT BLOCK: MyTime App Info screen detected!")
                             showCommitmentWarning()
-                            
-                            // TRIPLE BLOCK - send home 3 times rapidly for maximum reliability
                             triggerGlobalActionHome(true)
-                            handler.postDelayed({ triggerGlobalActionHome(false) }, 50)
-                            handler.postDelayed({ triggerGlobalActionHome(false) }, 100)
-                            
-                            android.util.Log.e("AccessibilityService", "🛡️ BLOCKED MyTime settings - sent home 3x")
                             return
                         }
                     }

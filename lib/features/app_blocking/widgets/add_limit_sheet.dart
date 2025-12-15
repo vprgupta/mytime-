@@ -264,32 +264,61 @@ class _AddLimitSheetState extends State<AddLimitSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Row(
               children: [
-                {'label': 'Indefinite', 'days': -1},
-                {'label': '1 Day', 'days': 1},
-                {'label': '3 Days', 'days': 3},
-                {'label': '7 Days', 'days': 7},
-                {'label': '14 Days', 'days': 14},
-                {'label': '30 Days', 'days': 30},
-              ].map((option) {
-                final days = option['days'] as int;
-                final label = option['label'] as String;
-                final isSelected = _durationDays == days;
-                return ChoiceChip(
-                  label: Text(label),
-                  selected: isSelected,
-                  onSelected: (selected) => setState(() => _durationDays = days),
-                  selectedColor: AppColors.warningOrange,
-                  backgroundColor: AppColors.surfaceDark,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.textSecondary,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                // Indefinite chip
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text('Indefinite'),
+                    selected: _durationDays == -1,
+                    onSelected: (selected) => setState(() => _durationDays = -1),
+                    selectedColor: AppColors.warningOrange,
+                    backgroundColor: AppColors.surfaceDark,
+                    labelStyle: TextStyle(
+                      color: _durationDays == -1 ? Colors.white : AppColors.textSecondary,
+                      fontWeight: _durationDays == -1 ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
-                );
-              }).toList(),
+                ),
+                const SizedBox(width: 12),
+                // Custom days input
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      labelText: 'Custom Days',
+                      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      hintText: 'e.g. 15',
+                      hintStyle: const TextStyle(color: AppColors.textSecondary),
+                      suffixText: 'days',
+                      suffixStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      filled: true,
+                      fillColor: AppColors.surfaceDark,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      final days = int.tryParse(value);
+                      if (days != null && days > 0) {
+                        setState(() => _durationDays = days);
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
 

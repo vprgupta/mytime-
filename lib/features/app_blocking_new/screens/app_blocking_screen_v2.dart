@@ -1204,70 +1204,139 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
   }
   
   void _showDurationPicker() {
+    int days = 1;
+    int hours = 0;
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surfaceDark,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '⏱️ Select Duration',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+      isScrollControlled: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '⏱️ Set Duration',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Once activated, you cannot cancel this session.',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _buildDurationOption(0, '5 Mins (Test)'),
-                _buildDurationOption(1, '1 Hour'),
-                _buildDurationOption(6, '6 Hours'),
-                _buildDurationOption(12, '12 Hours'),
-                _buildDurationOption(24, '24 Hours'),
-                _buildDurationOption(24 * 7, '7 Days'),
-              ],
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildDurationOption(int hours, String label) {
-    return InkWell(
-      onTap: () {
-        Navigator.pop(context); // Close bottom sheet
-        _activateCommitment(hours);
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primaryBlue.withValues(alpha:0.3)),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
+              const SizedBox(height: 8),
+              const Text(
+                'Once activated, you cannot cancel this session.',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 24),
+              
+              // Days input
+              TextField(
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Days',
+                  labelStyle: const TextStyle(color: AppColors.textSecondary),
+                  suffixText: 'days',
+                  suffixStyle: const TextStyle(color: AppColors.textSecondary),
+                  filled: true,
+                  fillColor: AppColors.cardDark,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                  ),
+                ),
+                onChanged: (value) {
+                  days = int.tryParse(value) ?? 0;
+                },
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Hours input
+              TextField(
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Hours',
+                  labelStyle: const TextStyle(color: AppColors.textSecondary),
+                  suffixText: 'hours',
+                  suffixStyle: const TextStyle(color: AppColors.textSecondary),
+                  helperText: 'Optional (0-23 hours)',
+                  helperStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  filled: true,
+                  fillColor: AppColors.cardDark,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                  ),
+                ),
+                onChanged: (value) {
+                  hours = int.tryParse(value) ?? 0;
+                },
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Activate button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final totalHours = (days * 24) + hours;
+                    if (totalHours > 0) {
+                      Navigator.pop(context);
+                      _activateCommitment(totalHours);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter a valid duration'),
+                          backgroundColor: AppColors.warningOrange,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.dangerRed,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Activate Commitment Mode',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
           ),
         ),
       ),

@@ -14,11 +14,11 @@ class CommitmentSetupScreen extends StatefulWidget {
 class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
   final MethodChannel _channel = const MethodChannel('app_blocking');
   final PageController _pageController = PageController();
-  final TextEditingController _customDurationController = TextEditingController();
+  final TextEditingController _daysController = TextEditingController(text: '1');
+  final TextEditingController _hoursController = TextEditingController(text: '0');
   
   int _currentPage = 0;
-  int _selectedHours = 24; // Default to 1 day
-  bool _isCustomSelected = false;
+  int _selectedHours = 24; // Calculated from days + hours
   
   Map<String, dynamic> _manufacturerInfo = {};
   Map<String, dynamic> _permissions = {};
@@ -283,91 +283,150 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Select how long you want to commit. This cannot be undone.',
+            'Enter how long you want to commit. This cannot be undone.',
             style: TextStyle(color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           
-          // Testing Option
-          Container(
-            margin: const EdgeInsets.only(bottom: 24),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.warningOrange.withValues(alpha:0.3)),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: _buildDurationOption(0, '5 Minutes', 'Quick test (for debugging)'),
-          ),
-          
-          _buildDurationOption(24 * 21, '21 Days', 'Habit Builder'),
-          const SizedBox(height: 12),
-          _buildDurationOption(24 * 30, '30 Days', 'Monthly Challenge'),
-          const SizedBox(height: 12),
-          _buildDurationOption(24 * 40, '40 Days', 'Deep Focus'),
-          const SizedBox(height: 12),
-          _buildDurationOption(24, '24 Hours', '1 Day'),
-          const SizedBox(height: 12),
-          
-          // Custom Option
+          // Custom Duration Input
           ModernCard(
-            onTap: () {
-              setState(() {
-                _isCustomSelected = true;
-                _selectedHours = int.tryParse(_customDurationController.text) ?? 1;
-              });
-            },
-            child: Container(
+            child: Padding(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: _isCustomSelected ? AppColors.primaryBlue : Colors.transparent,
-                  width: 2,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        _isCustomSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                        color: _isCustomSelected ? AppColors.primaryBlue : AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 16),
-                      const Text(
-                        'Custom Duration',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_isCustomSelected) ...[
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _customDurationController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: const InputDecoration(
-                        labelText: 'Enter hours',
-                        labelStyle: TextStyle(color: AppColors.textSecondary),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: AppColors.border),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: AppColors.primaryBlue),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedHours = int.tryParse(value) ?? 0;
-                        });
-                      },
+                  const Text(
+                    'Commitment Duration',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // Days Input
+                  TextField(
+                    controller: _daysController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
+                    decoration: InputDecoration(
+                      labelText: 'Days',
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
+                      suffixText: 'days',
+                      suffixStyle: const TextStyle(color: AppColors.textSecondary),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      _updateTotalHours();
+                    },
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Hours Input
+                  TextField(
+                    controller: _hoursController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
+                    decoration: InputDecoration(
+                      labelText: 'Hours',
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
+                      suffixText: 'hours',
+                      suffixStyle: const TextStyle(color: AppColors.textSecondary),
+                      helperText: 'Optional - Enter 0-23 hours',
+                      helperStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      _updateTotalHours();
+                    },
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Total Duration Display
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.primaryBlue.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.lock_clock, color: AppColors.primaryBlue),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Total Commitment',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                _getTotalDurationText(),
+                                style: const TextStyle(
+                                  color: AppColors.primaryBlue,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Info Box
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.warningOrange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.warningOrange.withValues(alpha: 0.3)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, color: AppColors.warningOrange, size: 20),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Tip: For exam prep, try 7-15 days. For habit building, 21-30 days works best.',
+                    style: TextStyle(
+                      color: AppColors.warningOrange,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -375,67 +434,32 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
     );
   }
   
-  Widget _buildDurationOption(int hours, String label, String description) {
-    final isSelected = !_isCustomSelected && _selectedHours == hours;
+  void _updateTotalHours() {
+    setState(() {
+      final days = int.tryParse(_daysController.text) ?? 0;
+      final hours = int.tryParse(_hoursController.text) ?? 0;
+      _selectedHours = (days * 24) + hours;
+    });
+  }
+  
+  String _getTotalDurationText() {
+    final days = int.tryParse(_daysController.text) ?? 0;
+    final hours = int.tryParse(_hoursController.text) ?? 0;
     
-    return ModernCard(
-      onTap: () => setState(() {
-        _isCustomSelected = false;
-        _selectedHours = hours;
-      }),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: isSelected
-              ? LinearGradient(
-                  colors: [
-                    AppColors.primaryBlue.withValues(alpha:0.2),
-                    AppColors.primaryBlue.withValues(alpha:0.1),
-                  ],
-                )
-              : null,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primaryBlue
-                : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-              color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: isSelected ? AppColors.primaryBlue : AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    if (days == 0 && hours == 0) {
+      return 'Please enter a duration';
+    }
+    
+    String result = '';
+    if (days > 0) {
+      result += '$days ${days == 1 ? 'day' : 'days'}';
+    }
+    if (hours > 0) {
+      if (result.isNotEmpty) result += ' ';
+      result += '$hours ${hours == 1 ? 'hour' : 'hours'}';
+    }
+    
+    return result;
   }
   
   Widget _buildPermissionItem(String title, bool isGranted, String badge, VoidCallback onGrant) {
@@ -628,7 +652,8 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
   @override
   void dispose() {
     _pageController.dispose();
-    _customDurationController.dispose();
+    _daysController.dispose();
+    _hoursController.dispose();
     super.dispose();
   }
 }

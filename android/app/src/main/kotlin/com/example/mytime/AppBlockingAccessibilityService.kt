@@ -461,13 +461,14 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             
             // A. PROACTIVE CACHING: Catch clicks/long-clicks on "MyTime" in ANY app (especially Launchers)
             val combinedText = "$clickedText $clickedDesc".lowercase()
-            if (combinedText == "mytime" || combinedText == "my time" || combinedText.contains("com.example.mytime")) {
+            // Relaxed check: 'contains' instead of 'equals' to catch list items like "MyTime 23MB" or "MyTime Installed"
+            if (combinedText.contains("mytime") || combinedText.contains("my time")) {
                 val now = System.currentTimeMillis()
                 lastAppInfoContext = "mytime"
                 lastAppInfoContextTime = now
                 lastBatteryContext = "mytime"
                 lastBatteryContextTime = now
-                android.util.Log.d("AccessibilityService", "🖱️ PRE-EMPTIVE CACHE: User interacted with MyTime icon!")
+                android.util.Log.d("AccessibilityService", "🖱️ PRE-EMPTIVE CACHE: User interacted with MyTime icon/item!")
             }
             
             // B. DANGEROUS CLICK DETECTION (Settings/Installer/Launcher)

@@ -142,6 +142,22 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         fun setLaunchLimit(packageName: String, limit: Int) {
             launchLimits[packageName] = limit
             android.util.Log.d("AccessibilityService", "📊 Set launch limit for $packageName: $limit times/day")
+            // Persist immediately
+            instance?.saveLaunchLimits()
+        }
+        
+        @JvmStatic
+        fun removeLaunchLimit(packageName: String) {
+            launchLimits.remove(packageName)
+            launchCounts.remove(packageName)
+            instance?.clearLaunchCount(packageName) // Ensure this method exists or remove if not needed
+            
+            // Remove from blocked list if it was blocked due to launch limit
+            MainActivity.blockedPackages.remove(packageName)
+            
+            // Persist immediately
+            instance?.saveLaunchLimits()
+            android.util.Log.d("AccessibilityService", "🗑️ Removed launch limit for $packageName and unblocked if necessary")
         }
         
         @JvmStatic
@@ -221,17 +237,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             return false // Allow
         }
         
-        @JvmStatic
-        fun removeLaunchLimit(packageName: String) {
-            launchLimits.remove(packageName)
-            launchCounts.remove(packageName)
-            instance?.clearLaunchCount(packageName)
-            
-            // Remove from blocked list if it was blocked due to launch limit
-            MainActivity.blockedPackages.remove(packageName)
-            
-            android.util.Log.d("AccessibilityService", "🗑️ Removed launch limit for $packageName and unblocked if necessary")
-        }
+
         
         // Scheduler State
         data class TimeSchedule(val startHour: Int, val startMinute: Int, val endHour: Int, val endMinute: Int, val isEnabled: Boolean)
@@ -293,6 +299,40 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         }
     }
     
+    private fun saveLaunchLimits() {
+        try {
+            val prefs = applicationContext.getSharedPreferences("LaunchLimits", android.content.Context.MODE_PRIVATE)
+            val editor = prefs.edit()
+            
+            // Clear old values first to handle removals
+            editor.clear()
+            
+            launchLimits.forEach { (pkg, limit) ->
+                editor.putInt(pkg, limit)
+            }
+            editor.apply()
+            android.util.Log.d("AccessibilityService", "💾 Saved ${launchLimits.size} launch limits")
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to save launch limits: ${e.message}")
+        }
+    }
+
+    private fun restoreLaunchLimits() {
+        try {
+            val prefs = applicationContext.getSharedPreferences("LaunchLimits", android.content.Context.MODE_PRIVATE)
+            launchLimits.clear()
+            
+            prefs.all.forEach { (pkg, value) ->
+                if (value is Int) {
+                    launchLimits[pkg] = value
+                }
+            }
+            android.util.Log.d("AccessibilityService", "♻️ Restored ${launchLimits.size} launch limits from persistence")
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to restore launch limits: ${e.message}")
+        }
+    }
+
     private fun saveUsageStats(packageName: String) {
         try {
             val prefs = applicationContext.getSharedPreferences("UsageLimits", Context.MODE_PRIVATE)
@@ -343,78 +383,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         }
     }
     
-    private fun saveLaunchCount(packageName: String, count: Int) {
-        try {
-            val prefs = applicationContext.getSharedPreferences("LaunchLimits", Context.MODE_PRIVATE)
-            val editor = prefs.edit()
-            editor.putInt("count_$packageName", count)
-            editor.apply()
-            android.util.Log.v("AccessibilityService", "💾 Saved launch count for $packageName: $count")
-        } catch (e: Exception) {
-            android.util.Log.e("AccessibilityService", "Failed to save launch count: ${e.message}")
-        }
-    }
-    
-    private fun clearLaunchCount(packageName: String) {
-        try {
-            val prefs = applicationContext.getSharedPreferences("LaunchLimits", Context.MODE_PRIVATE)
-            prefs.edit().remove("count_$packageName").apply()
-            android.util.Log.v("AccessibilityService", "🗑️ Cleared launch count for $packageName")
-        } catch (e: Exception) {
-            android.util.Log.e("AccessibilityService", "Failed to clear launch count: ${e.message}")
-        }
-    }
-    
-    private fun restoreLaunchCounts() {
-        try {
-            val prefs = applicationContext.getSharedPreferences("LaunchLimits", Context.MODE_PRIVATE)
-            
-            // Check if we need to reset for a new day
-            val savedDate = prefs.getString("current_date", "")
-            val today = AppBlockingAccessibilityService.getCurrentDate()
-            
-            if (savedDate != today) {
-                // New day - clear all counts
-                android.util.Log.d("AccessibilityService", "🌅 New day detected ($savedDate -> $today) - clearing launch counts")
-                val editor = prefs.edit()
-                editor.clear()
-                editor.putString("current_date", today)
-                editor.apply()
-                AppBlockingAccessibilityService.currentDate = today
-                return
-            }
-            
-            // Same day - restore counts
-            val all = prefs.all
-            var restoredCount = 0
-            
-            all.keys.forEach { key ->
-                if (key.startsWith("count_")) {
-                    val packageName = key.removePrefix("count_")
-                    val count = prefs.getInt(key, 0)
-                    AppBlockingAccessibilityService.launchCounts[packageName] = count
-                    restoredCount++
-                }
-            }
-            
-            if (restoredCount > 0) {
-                android.util.Log.d("AccessibilityService", "♻️ Restored launch counts for $restoredCount apps")
-            }
-            
-            AppBlockingAccessibilityService.currentDate = today
-        } catch (e: Exception) {
-            android.util.Log.e("AccessibilityService", "Failed to restore launch counts: ${e.message}")
-        }
-    }
-    
-    private fun saveCurrentDate() {
-        try {
-            val prefs = applicationContext.getSharedPreferences("LaunchLimits", Context.MODE_PRIVATE)
-            prefs.edit().putString("current_date", AppBlockingAccessibilityService.currentDate).apply()
-        } catch (e: Exception) {
-            android.util.Log.e("AccessibilityService", "Failed to save current date: ${e.message}")
-        }
-    }
+
 
     
     private fun incrementUsage(packageName: String) {
@@ -1439,6 +1408,67 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         }
     }
 
+    // --- Launch Count Persistence Helpers ---
+
+    private fun saveLaunchCount(packageName: String, count: Int) {
+        try {
+            val prefs = applicationContext.getSharedPreferences("LaunchCounts", android.content.Context.MODE_PRIVATE)
+            prefs.edit().putInt(packageName, count).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to save launch count: ${e.message}")
+        }
+    }
+    
+    private fun clearLaunchCount(packageName: String) {
+        try {
+            val prefs = applicationContext.getSharedPreferences("LaunchCounts", android.content.Context.MODE_PRIVATE)
+            prefs.edit().remove(packageName).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to clear launch count: ${e.message}")
+        }
+    }
+    
+    private fun saveCurrentDate() {
+        try {
+            val prefs = applicationContext.getSharedPreferences("LaunchCounts", android.content.Context.MODE_PRIVATE)
+            prefs.edit().putString("currentDate", currentDate).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to save date: ${e.message}")
+        }
+    }
+    
+    private fun restoreLaunchCounts() {
+        try {
+            val prefs = applicationContext.getSharedPreferences("LaunchCounts", android.content.Context.MODE_PRIVATE)
+            
+            // 1. Check Date
+            val savedDate = prefs.getString("currentDate", "")
+            val today = getCurrentDate()
+            
+            if (savedDate != today) {
+                android.util.Log.d("AccessibilityService", "🌅 Application restart on new day ($today vs $savedDate) - clearing old counts")
+                prefs.edit().clear().putString("currentDate", today).apply()
+                launchCounts.clear()
+                currentDate = today
+                return
+            }
+            
+            // 2. Restore Counts
+            currentDate = today // Ensure current date matches
+            launchCounts.clear()
+            prefs.all.forEach { (key, value) ->
+                if (key != "currentDate" && value is Int) {
+                    launchCounts[key] = value
+                }
+            }
+            android.util.Log.d("AccessibilityService", "♻️ Restored ${launchCounts.size} launch counts")
+            
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to restore launch counts: ${e.message}")
+        }
+
+    }
+
     override fun onInterrupt() {
         handler.removeCallbacksAndMessages(null)
         isProcessing.set(false)
@@ -1533,6 +1563,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
         restoreBlockedApps()
         restoreUsageStats() // Restore usage limits and progress
+        restoreLaunchLimits() // Restore launch limit CONFIGURATION
         restoreLaunchCounts() // Restore launch counts and daily tracking
         android.util.Log.d("AccessibilityService", "✅ Service connected and all data restored")
     }

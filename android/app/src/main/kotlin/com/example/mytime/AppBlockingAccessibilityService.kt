@@ -598,7 +598,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                          val isListScreen = (otherAppsCount >= 2 || hasListHeader || hasSearchBar)
                          
                          // Detail Indicators
-                         val hasStrongIndicator = windowTextRaw.contains("force stop") || windowTextRaw.contains("uninstall") || windowTextRaw.contains("disable")
+                         val hasStrongIndicator = windowTextRaw.contains("force stop") || windowTextRaw.contains("uninstall") || windowTextRaw.contains("disable") || windowTextRaw.contains("accessibility")
                          val detailCountInt = listOf("storage & cache", "mobile data", "battery", "permissions", "notifications").count { windowTextRaw.contains(it) }
                          val isActualDetailPage = hasStrongIndicator || detailCountInt >= 2
                          
@@ -647,7 +647,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                          
                          val isExplicitDetail = windowText.contains("com.example.mytime") && 
                                                (windowText.contains("force stop") || windowText.contains("uninstall") || 
-                                                windowText.contains("storage") || windowText.contains("data"))
+                                                windowText.contains("storage") || windowText.contains("data") || windowText.contains("accessibility"))
                          
                          val listHeaders = listOf("search apps", "app management", "all apps", "manage apps", "app list")
                          val hasListHeader = listHeaders.any { windowText.contains(it) }

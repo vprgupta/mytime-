@@ -12,6 +12,7 @@ import 'app_selection_screen_v2.dart';
 import 'scheduler_screen.dart';
 import 'permission_setup_screen_v2.dart';
 import '../../app_blocking/screens/app_usage_limiter_screen.dart'; // Import legacy limiter screen
+import 'commitment_setup_screen.dart';
 
 class AppBlockingScreenV2 extends StatefulWidget {
   const AppBlockingScreenV2({super.key});
@@ -1188,8 +1189,15 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
   Future<void> _handleCommitmentToggle(bool value) async {
     if (value) {
       // User wants to enable Commitment Mode
-      // No need for Device Admin - accessibility protection is sufficient
-      _showDurationPicker();
+      // Navigate to the dedicated Setup Screen
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => const CommitmentSetupScreen()),
+      );
+      
+      if (result == true) {
+        _checkProtectionStatus();
+      }
     } else {
       // User wants to disable
       if (_isProtectionActive) {
@@ -1203,183 +1211,9 @@ class _AppBlockingScreenV2State extends State<AppBlockingScreenV2> {
     }
   }
   
-  void _showDurationPicker() {
-    int days = 1;
-    int hours = 0;
-    
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceDark,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '⏱️ Set Duration',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Once activated, you cannot cancel this session.',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 24),
-              
-              // Days input
-              TextField(
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  labelText: 'Days',
-                  labelStyle: const TextStyle(color: AppColors.textSecondary),
-                  suffixText: 'days',
-                  suffixStyle: const TextStyle(color: AppColors.textSecondary),
-                  filled: true,
-                  fillColor: AppColors.cardDark,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
-                  ),
-                ),
-                onChanged: (value) {
-                  days = int.tryParse(value) ?? 0;
-                },
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Hours input
-              TextField(
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  labelText: 'Hours',
-                  labelStyle: const TextStyle(color: AppColors.textSecondary),
-                  suffixText: 'hours',
-                  suffixStyle: const TextStyle(color: AppColors.textSecondary),
-                  helperText: 'Optional (0-23 hours)',
-                  helperStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                  filled: true,
-                  fillColor: AppColors.cardDark,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
-                  ),
-                ),
-                onChanged: (value) {
-                  hours = int.tryParse(value) ?? 0;
-                },
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Activate button
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () {
-                    final totalHours = (days * 24) + hours;
-                    if (totalHours > 0) {
-                      Navigator.pop(context);
-                      _activateCommitment(totalHours);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter a valid duration'),
-                          backgroundColor: AppColors.warningOrange,
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.dangerRed,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Activate Commitment Mode',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // Removed _showDurationPicker in favor of CommitmentSetupScreen
   
-  Future<void> _activateCommitment(int hours) async {
-    try {
-      const channel = MethodChannel('app_blocking');
-      final success = await channel.invokeMethod<bool>('startCommitmentMode', {
-        'hours': hours,
-      });
-      
-      if (success == true) {
-        // Update local state immediately
-        final durationMillis = hours == 0 ? 5 * 60 * 1000 : hours * 60 * 60 * 1000;
-        final endTime = DateTime.now().add(Duration(milliseconds: durationMillis));
-        
-        setState(() {
-          _protectionLockEndTime = endTime;
-          _isProtectionActive = true;
-        });
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('🔒 Commitment Mode Activated for ${hours == 0 ? "5 mins" : "$hours hours"}!'),
-              backgroundColor: AppColors.successGreen,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: AppColors.dangerRed,
-          ),
-        );
-      }
-    }
-  }
+  // Legacy _activateCommitment removed as it's now handled by CommitmentSetupScreen
 
 
 }

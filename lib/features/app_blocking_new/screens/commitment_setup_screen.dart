@@ -25,6 +25,8 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
   bool _batteryOptimized = false;
   bool _isActivating = false;
   
+  bool _isTestMode = false;
+  
   @override
   void initState() {
     super.initState();
@@ -120,7 +122,7 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
                   child: GradientButton(
                     text: _currentPage == 2 ? 'Activate' : 'Next',
                     icon: _currentPage == 2 ? Icons.lock : Icons.arrow_forward,
-                    gradient: _currentPage == 2 ? AppColors.dangerGradient : AppColors.activeGradient,
+                    gradient: _currentPage == 2 ? AppColors.dangerGradientColors : AppColors.activeGradient,
                     onPressed: _isActivating ? null : () async {
                       if (_currentPage == 0) {
                         // Check permissions before proceeding
@@ -155,6 +157,11 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
                       } else if (_currentPage == 2) {
                         await _activateCommitment();
                       } else {
+                        // Reset test mode if hours manually entered
+                        if (!_isTestMode && _selectedHours == 0) {
+                          _updateTotalHours();
+                        }
+                        
                         _pageController.nextPage(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOut,
@@ -286,120 +293,202 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
             'Enter how long you want to commit. This cannot be undone.',
             style: TextStyle(color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+          
+          // Test Duration Option
+          ModernCard(
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _isTestMode = !_isTestMode;
+                  if (_isTestMode) {
+                    _selectedHours = 0;
+                  } else {
+                    _updateTotalHours();
+                  }
+                });
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _isTestMode 
+                            ? AppColors.primaryBlue.withValues(alpha:0.1) 
+                            : AppColors.textSecondary.withValues(alpha:0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.science, 
+                        color: _isTestMode ? AppColors.primaryBlue : AppColors.textSecondary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Quick Test (5 minutes)',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Perfect for verifying protection works',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _isTestMode,
+                      onChanged: (value) {
+                         setState(() {
+                          _isTestMode = value;
+                          if (_isTestMode) {
+                            _selectedHours = 0;
+                          } else {
+                            _updateTotalHours();
+                          }
+                        });
+                      },
+                      activeColor: AppColors.primaryBlue,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
           
           // Custom Duration Input
-          ModernCard(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Commitment Duration',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  
-                  // Days Input
-                  TextField(
-                    controller: _daysController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
-                    decoration: InputDecoration(
-                      labelText: 'Days',
-                      labelStyle: const TextStyle(color: AppColors.textSecondary),
-                      suffixText: 'days',
-                      suffixStyle: const TextStyle(color: AppColors.textSecondary),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
+          Opacity(
+            opacity: _isTestMode ? 0.5 : 1.0,
+            child: AbsorbPointer(
+              absorbing: _isTestMode,
+              child: ModernCard(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Custom Duration',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
-                      ),
-                    ),
-                    onChanged: (value) {
-                      _updateTotalHours();
-                    },
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Hours Input
-                  TextField(
-                    controller: _hoursController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
-                    decoration: InputDecoration(
-                      labelText: 'Hours',
-                      labelStyle: const TextStyle(color: AppColors.textSecondary),
-                      suffixText: 'hours',
-                      suffixStyle: const TextStyle(color: AppColors.textSecondary),
-                      helperText: 'Optional - Enter 0-23 hours',
-                      helperStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
-                      ),
-                    ),
-                    onChanged: (value) {
-                      _updateTotalHours();
-                    },
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Total Duration Display
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.primaryBlue.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.lock_clock, color: AppColors.primaryBlue),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Total Commitment',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              Text(
-                                _getTotalDurationText(),
-                                style: const TextStyle(
-                                  color: AppColors.primaryBlue,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                      const SizedBox(height: 20),
+                      
+                      // Days Input
+                      TextField(
+                        controller: _daysController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
+                        decoration: InputDecoration(
+                          labelText: 'Days',
+                          labelStyle: const TextStyle(color: AppColors.textSecondary),
+                          suffixText: 'days',
+                          suffixStyle: const TextStyle(color: AppColors.textSecondary),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
                           ),
                         ),
-                      ],
-                    ),
+                        onChanged: (value) {
+                          _updateTotalHours();
+                        },
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Hours Input
+                      TextField(
+                        controller: _hoursController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
+                        decoration: InputDecoration(
+                          labelText: 'Hours',
+                          labelStyle: const TextStyle(color: AppColors.textSecondary),
+                          suffixText: 'hours',
+                          suffixStyle: const TextStyle(color: AppColors.textSecondary),
+                          helperText: 'Optional - Enter 0-23 hours',
+                          helperStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                          ),
+                        ),
+                        onChanged: (value) {
+                          _updateTotalHours();
+                        },
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Total Duration Display
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primaryBlue.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_clock, color: AppColors.primaryBlue),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Total Commitment',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        _getTotalDurationText(),
+                        style: const TextStyle(
+                          color: AppColors.primaryBlue,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           
@@ -439,10 +528,15 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
       final days = int.tryParse(_daysController.text) ?? 0;
       final hours = int.tryParse(_hoursController.text) ?? 0;
       _selectedHours = (days * 24) + hours;
+      if (_selectedHours > 0) {
+        _isTestMode = false;
+      }
     });
   }
   
   String _getTotalDurationText() {
+    if (_isTestMode) return '5 minutes';
+    
     final days = int.tryParse(_daysController.text) ?? 0;
     final hours = int.tryParse(_hoursController.text) ?? 0;
     
@@ -515,16 +609,17 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
     final remainingHours = hours % 24;
     
     String durationText;
-    if (hours == 0) {
-      // Special case: Testing mode (5 minutes)
+    if (_isTestMode) {
       durationText = '5 minutes';
     } else if (days > 0) {
       durationText = days == 1 ? '1 day' : '$days days';
       if (remainingHours > 0) {
         durationText += ' $remainingHours hours';
       }
-    } else {
+    } else if (hours > 0) {
       durationText = hours == 1 ? '1 hour' : '$hours hours';
+    } else {
+      durationText = 'None selected';
     }
     
     return SingleChildScrollView(
@@ -616,14 +711,15 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
     
     try {
       final success = await _channel.invokeMethod<bool>('startCommitmentMode', {
-        'hours': _selectedHours,
+        'hours': _isTestMode ? 0 : _selectedHours,
       });
       
       if (success == true && mounted) {
         // Show success and go back
+        final durationLabel = _isTestMode ? '5 minutes' : '$_selectedHours hours';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('🔒 Commitment Mode Activated for $_selectedHours hours!'),
+            content: Text('🔒 Commitment Mode Activated for $durationLabel!'),
             backgroundColor: AppColors.successGreen,
             duration: const Duration(seconds: 3),
           ),

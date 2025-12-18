@@ -1614,7 +1614,23 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     }
 
     private fun scanChildrenForLabel(node: AccessibilityNodeInfo, depth: Int): Boolean {
-        if (depth > 15) return false
+        // SMART SEARCH: Level 0-2 (BFS-like) for "Title" IDs first
+        // This makes finding the app name much faster on settings pages
+        if (depth == 0) {
+           val count = node.childCount
+           for (i in 0 until count) {
+               val child = node.getChild(i) ?: continue
+               val resId = child.viewIdResourceName?.lowercase() ?: ""
+               
+               // Prioritize checking "title" or "header" nodes
+               if (resId.contains("title") || resId.contains("header") || resId.contains("label")) {
+                   val text = child.text?.toString()?.lowercase() ?: ""
+                   if (isMyTimeLabel(text)) return true
+               }
+           }
+        }
+    
+        if (depth > 8) return false
         
         val count = node.childCount
         for (i in 0 until count) {
@@ -1622,14 +1638,18 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             val text = child.text?.toString()?.lowercase() ?: ""
             val desc = child.contentDescription?.toString()?.lowercase() ?: ""
             
-            if (text == "mytime" || text == "my time" || text == "com.example.mytime" ||
-                desc == "mytime" || desc == "my time" || desc == "com.example.mytime") {
+            if (isMyTimeLabel(text) || isMyTimeLabel(desc)) {
                 return true
             }
             
             if (scanChildrenForLabel(child, depth + 1)) return true
         }
         return false
+    }
+    
+    // Helper for consistency
+    private fun isMyTimeLabel(text: String): Boolean {
+        return text == "mytime" || text == "my time" || text == "com.example.mytime"
     }
 
     private fun scanWindowForKeywords(node: AccessibilityNodeInfo?, keywords: List<String>): Boolean {

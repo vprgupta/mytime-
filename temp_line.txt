@@ -1,0 +1,1 @@
+                         val shouldBlock = (hasExplicitPackage || hasAppName) && isActualDetailPage && !isListScreen

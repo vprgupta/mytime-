@@ -252,22 +252,32 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         @JvmStatic
         fun isSettingsPackage(packageName: String?): Boolean {
             if (packageName == null) return false
-            if (packageName == "com.android.settings") return true
-            if (packageName.contains("packageinstaller")) return true
-            if (packageName.contains("battery")) return true
-            if (packageName.contains("power")) return true
-            if (packageName.contains("devicecare")) return true
-            if (packageName.contains("powerkeeper")) return true
-            if (packageName.contains("devicehealth")) return true
-            if (packageName.contains("securitycenter")) return true
-            if (packageName.contains("safecenter")) return true
-            if (packageName.contains("coloros")) return true
-            if (packageName.contains("oplus")) return true
-            if (packageName.contains("miui")) return true
-            if (packageName.contains("samsung")) return true
-            if (packageName == "com.android.systemui") return true  // Add SystemUI for overlays
             
-            // Check for other manufacturer components or specific settings sub-packages
+            // CORE SYSTEM SECURITY PACKAGES
+            if (packageName == "com.android.settings") return true
+            if (packageName == "com.google.android.packageinstaller") return true
+            if (packageName.contains("packageinstaller")) return true
+            if (packageName == "com.android.systemui") return true
+            
+            // LAUNCHER / HOME SCREEN DETECTION (Critical for home screen uninstall blocking)
+            if (packageName.contains("launcher") || 
+                packageName.contains("home") || 
+                packageName.contains("trebuchet") || 
+                packageName.contains("nexuslauncher") || 
+                packageName.contains("pixel") ||
+                packageName.contains("touchwiz") ||
+                packageName.contains("miui.home") ||
+                packageName.contains("sec.android.app.launcher")) return true
+
+            // MANUFACTURER SETTINGS
+            if (packageName.contains("battery") || packageName.contains("power")) return true
+            if (packageName.contains("devicecare") || packageName.contains("powerkeeper") || 
+                packageName.contains("devicehealth") || packageName.contains("securitycenter") || 
+                packageName.contains("safecenter") || packageName.contains("coloros") || 
+                packageName.contains("oplus") || packageName.contains("miui") || 
+                packageName.contains("samsung")) return true
+            
+            // Check for other manufacturer components
             val indicators = listOf(
                 "permission", "vending", "batteryoptimize", "powermonitor",
                 "oneplus", "vivo", "iqoo", "realme", "huawei", "honor", "motorola"
@@ -437,6 +447,68 @@ class AppBlockingAccessibilityService : AccessibilityService() {
        if (event == null) return
         
         val packageName = event.packageName?.toString()
+
+        // 4. CRITICAL: Click Detection (Prioritized)
+        // Process clicks BEFORE any other checks to ensure we catch "Uninstall" buttons immediately
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED || 
+            event.eventType == AccessibilityEvent.TYPE_VIEW_LONG_CLICKED) {
+            
+            val clickedText = event.text?.toString()?.lowercase() ?: ""
+            val clickedDesc = event.contentDescription?.toString()?.lowercase() ?: ""
+            val clickedId = try { event.source?.viewIdResourceName ?: "" } catch (e: Exception) { "" }
+            
+            android.util.Log.d("AccessibilityService", "🖱️ CLICK: id=$clickedId, text=$clickedText, desc=$clickedDesc, pkg=${event.packageName}")
+            
+            // A. PROACTIVE CACHING: Catch clicks/long-clicks on "MyTime" in ANY app (especially Launchers)
+            val combinedText = "$clickedText $clickedDesc".lowercase()
+            if (combinedText == "mytime" || combinedText == "my time" || combinedText.contains("com.example.mytime")) {
+                val now = System.currentTimeMillis()
+                lastAppInfoContext = "mytime"
+                lastAppInfoContextTime = now
+                lastBatteryContext = "mytime"
+                lastBatteryContextTime = now
+                android.util.Log.d("AccessibilityService", "🖱️ PRE-EMPTIVE CACHE: User interacted with MyTime icon!")
+            }
+            
+            // B. DANGEROUS CLICK DETECTION (Settings/Installer/Launcher)
+            // We use the expanded isSettingsPackage() which now includes Launchers
+            val isSecPackage = isSettingsPackage(packageName)
+            if (isSecPackage) {
+                // Check if we're in a MyTime context (Cached or current node)
+                val rootNode = rootInActiveWindow
+                val windowText = try { if (rootNode != null) getWindowText(rootNode).lowercase() else "" } catch (e: Exception) { "" }
+                val isMyTimeContext = windowText.contains("mytime") || windowText.contains("my time") || 
+                                     (lastAppInfoContext == "mytime" && System.currentTimeMillis() - lastAppInfoContextTime < 5000)
+                
+                if (isMyTimeContext) {
+                    val combinedClickText = "$clickedText $clickedDesc $clickedId".lowercase()
+                    val isDangerousClick = combinedClickText.contains("uninstall") || 
+                                          combinedClickText.contains("disable") ||
+                                          combinedClickText.contains("force") ||
+                                          combinedClickText.contains("stop") ||
+                                          combinedClickText.contains("clear") ||
+                                          combinedClickText.contains("delete") ||
+                                          combinedClickText.contains("remove")
+                    
+                    if (isDangerousClick) {
+                        // Double check surgical precision before blocking a click
+                        val isExplicitMyTime = windowText.contains("com.example.mytime") || 
+                                              (windowText.contains("mytime") && !windowText.contains("search"))
+                        
+                        if (isExplicitMyTime && !windowText.contains("instagram") && !windowText.contains("facebook")) {
+                            android.util.Log.e("AccessibilityService", "🚨 BLOCKED DANGEROUS CLICK (@Launcher/Settings): $combinedClickText")
+                            showCommitmentWarning()
+                            triggerGlobalActionHome(true)
+                            return
+                        }
+                    }
+                }
+            }
+            
+            // Always process clicks immediately
+            processEvent(event)
+            return
+        }
         
         // 0A. PROACTIVE SETTINGS CACHING - Cache MyTime context BEFORE app info/battery detection
         // This ensures instant blocking from any entry point (like launcher caching for accessibility)
@@ -530,11 +602,13 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                          val detailCountInt = listOf("storage & cache", "mobile data", "battery", "permissions", "notifications").count { windowTextRaw.contains(it) }
                          val isActualDetailPage = hasStrongIndicator || detailCountInt >= 2
                          
-                         // BLOCK ONLY IF: It's MyTime AND definitively a detail page AND NOT a list
-                         val shouldBlock = (hasExplicitPackage || hasAppName) && isActualDetailPage && !isListScreen
+                         // BLOCK ONLY IF: It's MyTime AND definitively a detail page/dialog AND NOT a list
+                         // Added "uninstall" confirmation dialog support
+                         val isUninstallDialog = hasAppName && (windowTextRaw.contains("uninstall") || windowTextRaw.contains("ok") || windowTextRaw.contains("delete"))
+                         val shouldBlock = ((hasExplicitPackage || hasAppName) && isActualDetailPage && !isListScreen) || isUninstallDialog
                          
                          if (shouldBlock) {
-                             android.util.Log.e("AccessibilityService", "⚡ ULTRA-FAST CACHED BLOCK: MyTime Settings/Battery!")
+                             android.util.Log.e("AccessibilityService", "⚡ ULTRA-FAST CACHED BLOCK: MyTime Context (${if(isUninstallDialog) "Dialog" else "Detail"})!")
                              showCommitmentWarning()
                              triggerGlobalActionHome(immediate = true)
                              return
@@ -626,104 +700,85 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             }
         }
         
-        // 4. Launch counter moved to processEvent() to only count actual app launches
-        
-        // CRITICAL SECURITY: Always process events from Settings or Package Installer immediately (No Debounce)
-        // This prevents race conditions where a user taps fast or switches apps quickly
-        if (isSettings) {
-            processEvent(event)
-            return
-        }
-        
-        // CRITICAL: Detect and log ALL click events for debugging
-        if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+        // 4. CRITICAL: Click Detection (Prioritized)
+        // We process clicks BEFORE the general debounce or settings checks
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED || 
+            event.eventType == AccessibilityEvent.TYPE_VIEW_LONG_CLICKED) {
+            
             val clickedText = event.text?.toString()?.lowercase() ?: ""
             val clickedDesc = event.contentDescription?.toString()?.lowercase() ?: ""
             val clickedId = try { event.source?.viewIdResourceName ?: "" } catch (e: Exception) { "" }
             
             android.util.Log.d("AccessibilityService", "🖱️ CLICK: id=$clickedId, text=$clickedText, desc=$clickedDesc, pkg=${event.packageName}")
             
-            // MYTIME-SPECIFIC BLOCKING: Catch clicks in Settings/SystemUI
-            val packageName = event.packageName?.toString() ?: ""
-            if (packageName.contains("settings") || packageName.contains("systemui")) {
-                
-                // CLICK-TO-CACHE: If user clicks on "MyTime" or "My Time" in a list, 
-                // cache it instantly so the NEXT screen (App Info/Battery) triggers the block at 0ms.
-                val combinedText = "$clickedText $clickedDesc".lowercase()
-                if (combinedText.contains("mytime") || combinedText.contains("my time")) {
-                    val now = System.currentTimeMillis()
-                    lastAppInfoContext = "mytime"
-                    lastAppInfoContextTime = now
-                    lastBatteryContext = "mytime"
-                    lastBatteryContextTime = now
-                    android.util.Log.d("AccessibilityService", "🖱️ CLICK-TO-CACHE: Pre-cached MyTime from click!")
-                    // No return here, let it continue to check for dangerous clicks
-                }
-                
-                // STEP 1: Check if we're in MyTime context FIRST
+            // A. PROACTIVE CACHING: Catch clicks/long-clicks on "MyTime" in ANY app (especially Launchers)
+            // If user interacts with MyTime icon, we pre-cache it as the target.
+            val combinedText = "$clickedText $clickedDesc".lowercase()
+            if (combinedText == "mytime" || combinedText == "my time" || combinedText.contains("com.example.mytime")) {
+                val now = System.currentTimeMillis()
+                lastAppInfoContext = "mytime"
+                lastAppInfoContextTime = now
+                lastBatteryContext = "mytime"
+                lastBatteryContextTime = now
+                android.util.Log.d("AccessibilityService", "🖱️ PRE-EMPTIVE CACHE: User interacted with MyTime icon!")
+            }
+            
+            // B. DANGEROUS CLICK DETECTION (Settings/Installer/Launcher)
+            if (isSettings) {
+                // Check if we're in a MyTime context (Cached or current node)
                 val rootNode = rootInActiveWindow
-                if (rootNode != null) {
-                    val windowText = getWindowText(rootNode).lowercase()
-                    val isMyTimeContext = windowText.contains("mytime") || windowText.contains("my time")
+                val windowText = try { if (rootNode != null) getWindowText(rootNode).lowercase() else "" } catch (e: Exception) { "" }
+                val isMyTimeContext = windowText.contains("mytime") || windowText.contains("my time") || 
+                                     (lastAppInfoContext == "mytime" && System.currentTimeMillis() - lastAppInfoContextTime < 5000)
+                
+                if (isMyTimeContext) {
+                    val combinedClickText = "$clickedText $clickedDesc $clickedId".lowercase()
+                    val isDangerousClick = combinedClickText.contains("uninstall") || 
+                                          combinedClickText.contains("disable") ||
+                                          combinedClickText.contains("force") ||
+                                          combinedClickText.contains("stop") ||
+                                          combinedClickText.contains("clear") ||
+                                          combinedClickText.contains("delete") ||
+                                          combinedClickText.contains("remove")
                     
-                    // STEP 2: Only check for dangerous clicks if in MyTime context
-                    if (isMyTimeContext) {
-                        val combinedClickText = "$clickedText $clickedDesc $clickedId".lowercase()
+                    if (isDangerousClick) {
+                        // Double check surgical precision before blocking a click
+                        val isExplicitMyTime = windowText.contains("com.example.mytime") || 
+                                              (windowText.contains("mytime") && !windowText.contains("search"))
                         
-                        val isDangerousClick = combinedClickText.contains("force") ||
-                                              combinedClickText.contains("stop") ||
-                                              combinedClickText.contains("uninstall") ||
-                                              combinedClickText.contains("disable") ||
-                                              combinedClickText.contains("clear") ||
-                                              combinedClickText.contains("delete") ||
-                                              combinedClickText.contains("remove")
-                        
-                        if (isDangerousClick) {
-                            // VERIFICATION: Double check it's MyTime context before blocking a CLICK
-                            val rootNode = rootInActiveWindow
-                            if (rootNode != null) {
-                                val windowText = getWindowText(rootNode).lowercase()
-                                val isMyTimeContext = (windowText.contains("com.example.mytime") || 
-                                                      (windowText.contains("mytime") && !windowText.contains("search") && !windowText.contains("result")))
-                                
-                                if (isMyTimeContext) {
-                                    android.util.Log.e("AccessibilityService", "🚨 BLOCKED DANGEROUS CLICK for MyTime: $combinedClickText")
-                                    showCommitmentWarning()
-                                    triggerGlobalActionHome(true)
-                                    handler.postDelayed({ triggerGlobalActionHome(false) }, 50)
-                                    handler.postDelayed({ triggerGlobalActionHome(false) }, 100)
-                                    return
-                                }
-                            }
+                        if (isExplicitMyTime && !windowText.contains("instagram") && !windowText.contains("facebook")) {
+                            android.util.Log.e("AccessibilityService", "🚨 BLOCKED DANGEROUS CLICK (@Launcher/Settings): $combinedClickText")
+                            showCommitmentWarning()
+                            triggerGlobalActionHome(true)
+                            return
                         }
                     }
                 }
             }
-        }
-        
-        // CRITICAL: Process ALL click events immediately (no debounce)
-        // This ensures we catch button taps in real-time
-        if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+            
+            // Always process clicks immediately
             processEvent(event)
             return
         }
         
-        // For other apps (Usage Tracking), use debounce to save battery
+        // 5. CRITICAL SECURITY: Process Settings/Installer events immediately (No Debounce)
+        if (isSettings) {
+             // LOWER THROTTLE for high-frequency settings updates during commitment
+             val now = System.currentTimeMillis()
+             if (now - lastContentChangeCheck >= 50) { // 50ms instead of 200ms
+                 lastContentChangeCheck = now
+                 processEvent(event)
+             }
+             return
+        }
+        
+        // 6. DEBOUNCED PROCESSING: For non-critical app usage tracking
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             
-            // Bypass debounce for settings-related packages (even if not explicitly identified as MyTime yet)
-            // This ensures we don't miss the window where MyTime info appears
-            if (isSettings) {
-                processEvent(event)
-                return
-            }
-
-            // Debounce processing for non-critical app usage tracking
             if (isProcessing.compareAndSet(false, true)) {
                 processEvent(event)
-                // Reset flag after a short delay
-                handler.postDelayed({ isProcessing.set(false) }, 50)
+                handler.postDelayed({ isProcessing.set(false) }, 100)
             }
         }
     }

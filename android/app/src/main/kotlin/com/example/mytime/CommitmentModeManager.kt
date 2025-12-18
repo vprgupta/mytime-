@@ -111,8 +111,6 @@ class CommitmentModeManager(private val context: Context) {
                 .putLong("uninstall_lock_end_time", endTime)
                 .apply()
             
-            // CRITICAL: Immediately block uninstallation of MyTime itself using Device Admin
-            enableUninstallProtection()
             
             val durationText = if (hours == 0) "5 minutes" else "$hours hours"
             Log.d(TAG, "Commitment started for $durationText, ends at $endTime")
@@ -123,27 +121,6 @@ class CommitmentModeManager(private val context: Context) {
         }
     }
     
-    /**
-     * CRITICAL: Enable Device Admin uninstall protection for MyTime itself
-     * This prevents uninstallation during commitment mode
-     */
-    private fun enableUninstallProtection() {
-        try {
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
-            val adminComponent = ComponentName(context, AppProtectionDeviceAdminReceiver::class.java)
-            
-            if (devicePolicyManager != null && devicePolicyManager.isAdminActive(adminComponent)) {
-                // Block uninstallation of MyTime itself
-                devicePolicyManager.setUninstallBlocked(adminComponent, context.packageName, true)
-                Log.d(TAG, "🔒 ENABLED uninstall protection for MyTime")
-            } else {
-                Log.w(TAG, "⚠️ Device Admin NOT active - cannot enable uninstall protection!")
-                Log.w(TAG, "User must enable Device Admin first for full protection")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to enable uninstall protection", e)
-        }
-    }
     
     /**
      * Check if commitment mode is currently active
@@ -345,32 +322,7 @@ class CommitmentModeManager(private val context: Context) {
      */
     private fun disableProtections() {
         try {
-            // Get DevicePolicyManager and admin component
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
-            val adminComponent = ComponentName(context, AppProtectionDeviceAdminReceiver::class.java)
-            
-            // Only proceed if DevicePolicyManager exists and admin is active
-            if (devicePolicyManager != null && devicePolicyManager.isAdminActive(adminComponent)) {
-                Log.d(TAG, "🔓 Removing Device Admin protections...")
-                
-                // Step 1: Remove uninstall block for this app
-                try {
-                    devicePolicyManager.setUninstallBlocked(adminComponent, context.packageName, false)
-                    Log.d(TAG, "✅ Uninstall block removed")
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to remove uninstall block: ${e.message}")
-                }
-                
-                // Step 2: Remove Device Admin (allows user to uninstall)
-                try {
-                    devicePolicyManager.removeActiveAdmin(adminComponent)
-                    Log.d(TAG, "✅ Device Admin removed")
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to remove Device Admin: ${e.message}")
-                }
-            } else {
-                Log.d(TAG, "Device Admin not active, no removal needed")
-            }
+            Log.d(TAG, "Device Admin removed from dependency")
             
             // Step 3: Stop all protection services
             stopProtectionServices()

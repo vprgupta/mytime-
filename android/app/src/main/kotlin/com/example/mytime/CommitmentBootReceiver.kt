@@ -29,10 +29,6 @@ class CommitmentBootReceiver : BroadcastReceiver() {
                 
                 Log.d(TAG, "✅ Commitment is ACTIVE! Remaining: ${remainingHours}h ${remainingMins}m")
                 
-                // CRITICAL: Immediately re-enable Device Admin uninstall blocking
-                // This MUST happen BEFORE accessibility service starts to prevent
-                // uninstallation during the boot window
-                immediatelyBlockUninstall(context)
                 
                 // STEP 1: Verify accessibility service is enabled
                 if (!isAccessibilityServiceEnabled(context)) {
@@ -41,13 +37,6 @@ class CommitmentBootReceiver : BroadcastReceiver() {
                     Log.d(TAG, "✅ Accessibility service is enabled")
                 }
                 
-                // STEP 2: Verify device admin is active
-                if (!isDeviceAdminActive(context)) {
-                    Log.w(TAG, "⚠️ Device Admin NOT active - attempting to restore")
-                    // Cannot auto-enable, but log for user notification
-                } else {
-                    Log.d(TAG, "✅ Device Admin is active")
-                }
                 
                 // STEP 3: Restore blocked apps to AccessibilityService
                 restoreBlockedApps(context)
@@ -91,27 +80,6 @@ class CommitmentBootReceiver : BroadcastReceiver() {
         }
     }
     
-    /**
-     * CRITICAL: Immediately block uninstallation using Device Admin
-     * This runs synchronously on boot to prevent uninstallation during
-     * the window before accessibility service starts
-     */
-    private fun immediatelyBlockUninstall(context: Context) {
-        try {
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
-            val adminComponent = ComponentName(context, AppProtectionDeviceAdminReceiver::class.java)
-            
-            if (devicePolicyManager != null && devicePolicyManager.isAdminActive(adminComponent)) {
-                // Block uninstallation IMMEDIATELY
-                devicePolicyManager.setUninstallBlocked(adminComponent, context.packageName, true)
-                Log.d(TAG, "🔒 IMMEDIATE uninstall block applied on boot")
-            } else {
-                Log.e(TAG, "❌ Device Admin NOT active - cannot block uninstall!")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to immediately block uninstall", e)
-        }
-    }
     
     private fun isAccessibilityServiceEnabled(context: Context): Boolean {
         return try {
@@ -126,16 +94,6 @@ class CommitmentBootReceiver : BroadcastReceiver() {
         }
     }
     
-    private fun isDeviceAdminActive(context: Context): Boolean {
-        return try {
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
-            val adminComponent = ComponentName(context, AppProtectionDeviceAdminReceiver::class.java)
-            devicePolicyManager?.isAdminActive(adminComponent) == true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to check device admin", e)
-            false
-        }
-    }
     
     private fun showAccessibilityWarning(context: Context) {
         // Log warning - user will see when they open the app
@@ -143,11 +101,6 @@ class CommitmentBootReceiver : BroadcastReceiver() {
         // TODO: Show notification when NotificationHelper is implemented
     }
     
-    private fun showDeviceAdminWarning(context: Context) {
-        // Log warning - user will see when they open the app
-        Log.w(TAG, "⚠️ DEVICE ADMIN DISABLED - User must re-enable manually")
-        // TODO: Show notification when NotificationHelper is implemented
-    }
     
     private fun restoreBlockedApps(context: Context) {
         try {

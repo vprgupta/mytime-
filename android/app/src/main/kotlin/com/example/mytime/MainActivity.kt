@@ -48,8 +48,6 @@ class MainActivity : FlutterActivity() {
         // Initialize commitment mode manager
         commitmentManager = CommitmentModeManager(this)
         
-        // Initialize device admin
-        initializeDeviceAdmin()
         
         // Restore active blocking sessions first
         restoreActiveSessions()
@@ -92,12 +90,11 @@ class MainActivity : FlutterActivity() {
                     val hasUsageStats = PermissionHelper.hasUsageStatsPermission(this)
                     val hasAccessibility = PermissionHelper.isAccessibilityServiceEnabled(this)
                     val hasOverlay = PermissionHelper.hasOverlayPermission(this)
-                    val hasDeviceAdmin = isDeviceAdminEnabled()
                     result.success(mapOf(
                         "usageStats" to hasUsageStats,
                         "accessibility" to hasAccessibility,
                         "overlay" to hasOverlay,
-                        "deviceAdmin" to hasDeviceAdmin
+                        "deviceAdmin" to false
                     ))
                 }
                 "stopMonitoring" -> {
@@ -121,9 +118,6 @@ class MainActivity : FlutterActivity() {
                             saveBlockingSession(packageName, endTime)
                         }
                         
-                        // Device Admin: Block uninstallation at system level
-                        // Always try to block (will check internally if admin enabled)
-                        setUninstallBlocked(packageName, true)
                         
                         startRealTimeMonitoring()
                         
@@ -150,8 +144,6 @@ class MainActivity : FlutterActivity() {
                         // Remove from persistent storage
                         removeBlockingSession(packageName)
                         
-                        // Device Admin: Remove uninstall blocking
-                        setUninstallBlocked(packageName, false)
                         
                         lastBlockTime.remove(packageName)
                         if (blockedApps.isEmpty()) {
@@ -169,8 +161,6 @@ class MainActivity : FlutterActivity() {
                         blockedAppNames.add(appName.lowercase())
                         AppBlockingAccessibilityService.addBlockedApp(packageName)
                         
-                        // Device Admin: Block uninstallation at system level
-                        setUninstallBlocked(packageName, true)
                         
                         startRealTimeMonitoring()
                     }
@@ -184,8 +174,6 @@ class MainActivity : FlutterActivity() {
                         val appName = getAppName(packageName)
                         blockedAppNames.remove(appName.lowercase())
                         
-                        // Device Admin: Remove uninstall blocking
-                        setUninstallBlocked(packageName, false)
                         
                         if (blockedApps.isEmpty()) {
                             AppBlockingAccessibilityService.isBlockingActive = false
@@ -203,8 +191,6 @@ class MainActivity : FlutterActivity() {
                         val appName = getAppName(packageName)
                         blockedAppNames.remove(appName.lowercase())
                         
-                        // Device Admin: Remove uninstall blocking
-                        setUninstallBlocked(packageName, false)
                         
                         lastBlockTime.remove(packageName)
                         if (blockedApps.isEmpty()) {
@@ -260,20 +246,12 @@ class MainActivity : FlutterActivity() {
                     result.success(blockedApps.toList())
                 }
                 "enableDeviceAdmin" -> {
-                    enableDeviceAdmin()
                     result.success(null)
                 }
                 "isDeviceAdminEnabled" -> {
-                    val isEnabled = isDeviceAdminEnabled()
-                    // If just enabled, apply uninstall block to all currently blocked apps
-                    if (isEnabled) {
-                        applyUninstallBlockToAllBlockedApps()
-                    }
-                    result.success(isEnabled)
+                    result.success(false)
                 }
                 "preventUninstall" -> {
-                    val prevent = call.argument<Boolean>("prevent") ?: false
-                    setUninstallPrevention(prevent)
                     result.success(null)
                 }
                 "openAccessibilitySettings" -> {
@@ -310,8 +288,6 @@ class MainActivity : FlutterActivity() {
                     if (success) {
                         isCommitmentActive = true
                         startCommitmentMonitoring()
-                        // Enforce uninstall protection via Device Admin
-                        setUninstallBlocked(packageName, true)
                     }
                     result.success(success)
                 }
@@ -582,10 +558,6 @@ class MainActivity : FlutterActivity() {
         }
     }
     
-    private fun initializeDeviceAdmin() {
-        devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        adminComponent = ComponentName(this, AppProtectionDeviceAdminReceiver::class.java)
-    }
     
     private fun startUninstallProtection() {
         try {
@@ -614,20 +586,6 @@ class MainActivity : FlutterActivity() {
             val monitoringIntent = Intent(this, CommitmentMonitoringService::class.java)
             stopService(monitoringIntent)
             
-            // Disable Device Admin if no commitment active
-            if (isDeviceAdminEnabled() && !commitmentManager.isCommitmentActive()) {
-                isCommitmentActive = false
-                try {
-                    // Remove uninstall block for MyTime app
-                    devicePolicyManager?.setUninstallBlocked(adminComponent!!, packageName, false)
-                    
-                    // Remove Device Admin
-                    devicePolicyManager?.removeActiveAdmin(adminComponent!!)
-                    android.util.Log.d("MainActivity", "✅ Removed Device Admin (no active commitment)")
-                } catch (e: Exception) {
-                    android.util.Log.w("MainActivity", "Failed to remove Device Admin: ${e.message}")
-                }
-            }
             
             android.util.Log.d("MainActivity", "✅ Stopped all protection services")
         } catch (e: Exception) {
@@ -635,58 +593,8 @@ class MainActivity : FlutterActivity() {
         }
     }
     
-    private fun enableDeviceAdmin() {
-        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-        intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
-        intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Required to prevent app uninstallation during focus sessions")
-        startActivity(intent)
-    }
     
-    private fun isDeviceAdminEnabled(): Boolean {
-        return devicePolicyManager?.isAdminActive(adminComponent!!) ?: false
-    }
     
-    private fun setUninstallPrevention(prevent: Boolean) {
-        if (isDeviceAdminEnabled()) {
-            try {
-                if (prevent) {
-                    devicePolicyManager?.setUninstallBlocked(adminComponent!!, packageName, true)
-                    devicePolicyManager?.setLockTaskPackages(adminComponent!!, arrayOf(packageName))
-                    startLockTask()
-                } else {
-                    devicePolicyManager?.setUninstallBlocked(adminComponent!!, packageName, false)
-                    stopLockTask()
-                }
-            } catch (e: Exception) {
-                // Handle silently
-            }
-        }
-    }
-    
-    private fun setUninstallBlocked(packageName: String, blocked: Boolean) {
-        if (isDeviceAdminEnabled()) {
-            try {
-                devicePolicyManager?.setUninstallBlocked(adminComponent!!, packageName, blocked)
-                android.util.Log.d("MainActivity", "Set uninstall blocked for $packageName: $blocked")
-            } catch (e: Exception) {
-                android.util.Log.e("MainActivity", "Failed to set uninstall blocked for $packageName: ${e.message}")
-            }
-        }
-    }
-    
-    private fun applyUninstallBlockToAllBlockedApps() {
-        if (!isDeviceAdminEnabled()) return
-        
-        for (packageName in blockedApps) {
-            try {
-                devicePolicyManager?.setUninstallBlocked(adminComponent!!, packageName, true)
-                android.util.Log.d("MainActivity", "✅ Applied uninstall block to: $packageName")
-            } catch (e: Exception) {
-                android.util.Log.e("MainActivity", "Failed to apply uninstall block to $packageName: ${e.message}")
-            }
-        }
-        android.util.Log.d("MainActivity", "Applied uninstall blocking to ${blockedApps.size} apps")
-    }
     
     // === Persistent Blocking Methods (Survives Reinstall) ===
     

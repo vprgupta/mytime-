@@ -7,9 +7,6 @@ class BypassPreventionService {
   
   static Future<void> enableAntiBypassProtection() async {
     try {
-      // Enable device admin for uninstall protection
-      await _channel.invokeMethod('enableDeviceAdmin');
-      
       // Start comprehensive protection
       await _channel.invokeMethod('preventUninstall', {'prevent': true});
       
@@ -26,14 +23,7 @@ class BypassPreventionService {
     }
   }
   
-  static Future<bool> isDeviceAdminEnabled() async {
-    try {
-      return await _channel.invokeMethod('isDeviceAdminEnabled') ?? false;
-    } catch (e) {
-      debugPrint('Error checking device admin status: $e');
-      return false;
-    }
-  }
+
 
   // Mock data for bypass attempts - in real implementation, this would come from storage
   List<BypassAttempt> getAllBypassAttempts() {

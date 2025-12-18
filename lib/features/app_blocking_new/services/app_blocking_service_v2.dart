@@ -100,7 +100,6 @@ class AppBlockingServiceV2 {
     try {
       final result = await _channel.invokeMethod('checkPermissions');
       if (result is Map) {
-        // Device Admin is optional - only needed for uninstall prevention
         return result['usageStats'] == true && 
                result['accessibility'] == true && 
                result['overlay'] == true;
@@ -122,7 +121,6 @@ class AppBlockingServiceV2 {
         if (result['usageStats'] != true) missing.add('Usage Access');
         if (result['accessibility'] != true) missing.add('Accessibility Service');
         if (result['overlay'] != true) missing.add('Display over other apps');
-        // Device Admin is optional - not in the critical missing list
       }
       return missing;
     } catch (e) {
@@ -250,20 +248,11 @@ class AppBlockingServiceV2 {
 
   // Uninstall Protection Methods
   
-  Future<void> enableDeviceAdmin() async {
-    try {
-      await _channel.invokeMethod('enableDeviceAdmin');
-    } catch (e) {
-      // debugPrint('Error enabling device admin: $e');
-    }
-  }
 
   Future<void> setUninstallLock(int days) async {
     final endTime = DateTime.now().add(Duration(days: days)).millisecondsSinceEpoch;
     try {
       await _channel.invokeMethod('setUninstallLock', {'timestamp': endTime});
-      // Also ensure device admin is enabled
-      await enableDeviceAdmin();
     } catch (e) {
       // debugPrint('Error setting uninstall lock: $e');
     }

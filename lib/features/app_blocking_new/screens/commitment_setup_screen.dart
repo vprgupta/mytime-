@@ -126,30 +126,6 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
                     onPressed: _isActivating ? null : () async {
                       if (_currentPage == 0) {
                         // Check permissions before proceeding
-                        final deviceAdmin = _permissions['deviceAdmin'] ?? false;
-                        if (!deviceAdmin) {
-                          // Auto-request permission instead of just showing snackbar
-                          await _channel.invokeMethod('enableDeviceAdmin');
-                          // Wait a bit for user to potentially grant it
-                          await Future.delayed(const Duration(seconds: 1));
-                          await _loadInfo();
-                          
-                          // Check again
-                          final updatedPermissions = await _channel.invokeMethod<Map>('checkPermissions');
-                          final isGranted = updatedPermissions?['deviceAdmin'] ?? false;
-                          
-                          if (!isGranted) {
-                             if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Please enable Device Admin permission to proceed.'),
-                                    backgroundColor: AppColors.warningOrange,
-                                  ),
-                                );
-                             }
-                             return;
-                          }
-                        }
                         _pageController.nextPage(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOut,
@@ -179,7 +155,6 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
   }
 
   Widget _buildIntroAndPermissionPage() {
-    final deviceAdmin = _permissions['deviceAdmin'] ?? false;
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -196,21 +171,11 @@ class _CommitmentSetupScreenState extends State<CommitmentSetupScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'To prevent uninstallation during your commitment, MyTime needs Device Administrator permission.',
+            'To ensure maximum protection during your commitment, please verify the requirements below.',
             style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
           
-          _buildPermissionItem(
-            'Device Admin',
-            deviceAdmin,
-            'Required',
-            () async {
-              await _channel.invokeMethod('enableDeviceAdmin');
-              await Future.delayed(const Duration(seconds: 1));
-              await _loadInfo();
-            },
-          ),
           
           const SizedBox(height: 32),
           const Text(

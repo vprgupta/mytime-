@@ -10,7 +10,6 @@ class DeviceAdminService {
 
   static const MethodChannel _channel = MethodChannel('app_blocking');
   
-  bool _hasDeviceAdmin = false;
   bool _hasUsageAccess = false;
   bool _hasAccessibilityService = false;
   bool _hasOverlayPermission = false;
@@ -24,27 +23,12 @@ class DeviceAdminService {
     } catch (e) {
       debugPrint('Error initializing device admin service: $e');
       // Set default values on error
-      _hasDeviceAdmin = false;
       _hasUsageAccess = false;
       _hasAccessibilityService = false;
       _hasOverlayPermission = false;
     }
   }
 
-  /// Request Device Admin permission specifically
-  Future<bool> requestDeviceAdmin() async {
-    if (!Platform.isAndroid) return false;
-    
-    try {
-      await _channel.invokeMethod('enableDeviceAdmin');
-      await Future.delayed(const Duration(seconds: 1));
-      await _checkAllPermissions();
-      return _hasDeviceAdmin;
-    } catch (e) {
-      debugPrint('Error requesting device admin: $e');
-      return false;
-    }
-  }
 
   /// Request Usage Access Settings permission specifically
   Future<bool> requestUsageAccess() async {
@@ -99,21 +83,6 @@ class DeviceAdminService {
     }
   }
 
-  /// Check permissions using the existing MainActivity methods
-  Future<bool> hasDeviceAdmin() async {
-    if (!Platform.isAndroid) return false;
-    
-    try {
-      final result = await _channel.invokeMethod('checkPermissions');
-      if (result is Map) {
-        _hasDeviceAdmin = result['deviceAdmin'] ?? false;
-        return _hasDeviceAdmin;
-      }
-      return false;
-    } catch (e) {
-      return false;
-    }
-  }
 
   /// Check if usage access is granted
   Future<bool> hasUsageAccess() async {
@@ -167,7 +136,6 @@ class DeviceAdminService {
   Future<void> _checkAllPermissions() async {
     try {
       await Future.wait([
-        hasDeviceAdmin().catchError((e) => false),
         hasUsageAccess().catchError((e) => false),
         hasAccessibilityService().catchError((e) => false),
         hasOverlayPermission().catchError((e) => false),
@@ -188,7 +156,6 @@ class DeviceAdminService {
   List<String> get missingPermissions {
     final missing = <String>[];
     
-    if (!_hasDeviceAdmin) missing.add('Device Administrator');
     if (!_hasUsageAccess) missing.add('Usage Access');
     if (!_hasAccessibilityService) missing.add('Accessibility Service');
     if (!_hasOverlayPermission) missing.add('Display over other apps');
@@ -226,7 +193,6 @@ class DeviceAdminService {
   /// Get permission status summary
   Map<String, bool> get permissionStatus {
     return {
-      'deviceAdmin': _hasDeviceAdmin,
       'usageAccess': _hasUsageAccess,
       'accessibilityService': _hasAccessibilityService,
       'overlayPermission': _hasOverlayPermission,

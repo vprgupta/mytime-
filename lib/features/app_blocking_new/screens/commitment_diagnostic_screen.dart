@@ -260,15 +260,7 @@ class _CommitmentDiagnosticScreenState extends State<CommitmentDiagnosticScreen>
             await _channel.invokeMethod('requestOverlay');
           },
         ),
-        const SizedBox(height: 8),
-        _buildPermissionCard(
-          'Device Admin',
-          _permissions['deviceAdmin'] ?? false,
-          'Optional: Enhanced uninstall protection',
-          () async {
-            await _channel.invokeMethod('enableDeviceAdmin');
-          },
-        ),
+
       ],
     );
   }

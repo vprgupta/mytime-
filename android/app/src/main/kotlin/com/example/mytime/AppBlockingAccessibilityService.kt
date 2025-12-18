@@ -502,6 +502,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 // This removes dependency on activity class names which can be fuzzy.
                 try {
                     val rootNode = rootInActiveWindow
+                    val now = System.currentTimeMillis()
                     
                     // 1. FAST CACHE CHECK
                     val isMyTimeAppInfo = (lastAppInfoContext == "mytime" && now - lastAppInfoContextTime < APP_INFO_CONTEXT_MEMORY_MS)
@@ -509,26 +510,28 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     
                     if (isMyTimeAppInfo || isMyTimeBattery) {
                          // SURGICAL: Verify it's still a detail page before using cache
-                         val windowText = try { if (rootNode != null) getWindowText(rootNode).lowercase() else "" } catch (e: Exception) { "" }
-                         val eventText = event.text?.toString()?.lowercase() ?: ""
-                         val combinedText = "$windowText $eventText"
+                         val windowTextRaw = try { if (rootNode != null) getWindowText(rootNode).lowercase() else "" } catch (e: Exception) { "" }
+                         val eventTextRaw = event.text?.toString()?.lowercase() ?: ""
+                         val combinedTextRaw = "$windowTextRaw $eventTextRaw"
                          
                          // Must have explicit package name OR (MyTime app name AND a detail indicator)
-                         val hasExplicitPackage = combinedText.contains("com.example.mytime")
-                         val hasAppName = combinedText.contains("mytime") || combinedText.contains("my time")
-                         val isDetailPage = combinedText.contains("force stop") || combinedText.contains("uninstall") || 
-                                           (combinedText.contains("mah") && combinedText.contains("foreground")) ||
-                                           combinedText.contains("battery usage") || combinedText.contains("power usage")
+                         val hasExplicitPackage = combinedTextRaw.contains("com.example.mytime")
+                         val hasAppName = combinedTextRaw.contains("mytime") || combinedTextRaw.contains("my time")
                          
-                         // Check if this is a list of apps (to avoid blocking the battery usage list)
-                         val otherApps = listOf("instagram", "facebook", "whatsapp", "chrome", "youtube", "gmail", "system", "android", "google")
-                         val otherAppCount = otherApps.count { windowText.contains(it) }
-                         val isList = otherAppCount >= 2
+                         // Structural List Detection
+                         val otherAppsCount = listOf("instagram", "facebook", "whatsapp", "chrome", "youtube", "gmail", "system", "android", "google", "settings").count { windowTextRaw.contains(it) }
+                         val listHeadersStr = listOf("search apps", "app management", "all apps", "manage apps", "app list")
+                         val hasListHeader = listHeadersStr.any { windowTextRaw.contains(it) }
+                         val hasSearchBar = windowTextRaw.contains("search") || windowTextRaw.contains("query")
+                         val isListScreen = (otherAppsCount >= 2 || hasListHeader || hasSearchBar)
                          
-                         // BLOCK ONLY IF:
-                         // 1. Explicit package name is present AND it's NOT a list
-                         // 2. OR App Name is present AND it's definitively a detail page
-                         val shouldBlock = (hasExplicitPackage && !isList) || (hasAppName && isDetailPage)
+                         // Detail Indicators
+                         val hasStrongIndicator = windowTextRaw.contains("force stop") || windowTextRaw.contains("uninstall") || windowTextRaw.contains("disable")
+                         val detailCountInt = listOf("storage & cache", "mobile data", "battery", "permissions", "notifications").count { windowTextRaw.contains(it) }
+                         val isActualDetailPage = hasStrongIndicator || detailCountInt >= 2
+                         
+                         // BLOCK ONLY IF: It's MyTime AND definitively a detail page AND NOT a list
+                         val shouldBlock = (hasExplicitPackage || hasAppName) && isActualDetailPage && !isListScreen
                          
                          if (shouldBlock) {
                              android.util.Log.e("AccessibilityService", "⚡ ULTRA-FAST CACHED BLOCK: MyTime Settings/Battery!")
@@ -565,14 +568,19 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                          // SURGICAL: Final verification that it's NOT a list before blocking
                          val rootNodeVer = rootInActiveWindow
                          val windowText = try { if (rootNodeVer != null) getWindowText(rootNodeVer).lowercase() else "" } catch (e: Exception) { "" }
-                         val otherApps = listOf("instagram", "facebook", "whatsapp", "chrome", "youtube", "gmail", "system", "android", "google")
+                         val otherApps = listOf("instagram", "facebook", "whatsapp", "chrome", "youtube", "gmail", "system", "android", "google", "settings")
                          val otherAppCount = otherApps.count { windowText.contains(it) }
                          
-                         // Block only if it's NOT a list OR we have the explicit detail page package name focal
                          val isExplicitDetail = windowText.contains("com.example.mytime") && 
-                                               (windowText.contains("force stop") || windowText.contains("uninstall") || windowText.contains("mah"))
+                                               (windowText.contains("force stop") || windowText.contains("uninstall") || 
+                                                windowText.contains("storage") || windowText.contains("data"))
                          
-                         if (otherAppCount < 2 || isExplicitDetail) {
+                         val listHeaders = listOf("search apps", "app management", "all apps", "manage apps", "app list")
+                         val hasListHeader = listHeaders.any { windowText.contains(it) }
+                         val hasSearchBar = windowText.contains("search") || windowText.contains("query")
+                         val isList = otherAppCount >= 2 || hasListHeader || hasSearchBar
+                         
+                         if ((!isList && isMyTimeDetected) || isExplicitDetail) {
                              // Update cache for future instant blocks
                              if (combinedEventText.contains("mah") || combinedEventText.contains("battery") || combinedEventText.contains("power")) {
                                  lastBatteryContext = "mytime"
@@ -635,9 +643,23 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             
             android.util.Log.d("AccessibilityService", "🖱️ CLICK: id=$clickedId, text=$clickedText, desc=$clickedDesc, pkg=${event.packageName}")
             
-            // MYTIME-SPECIFIC BLOCKING: Only block dangerous clicks in MyTime context
+            // MYTIME-SPECIFIC BLOCKING: Catch clicks in Settings/SystemUI
             val packageName = event.packageName?.toString() ?: ""
             if (packageName.contains("settings") || packageName.contains("systemui")) {
+                
+                // CLICK-TO-CACHE: If user clicks on "MyTime" or "My Time" in a list, 
+                // cache it instantly so the NEXT screen (App Info/Battery) triggers the block at 0ms.
+                val combinedText = "$clickedText $clickedDesc".lowercase()
+                if (combinedText.contains("mytime") || combinedText.contains("my time")) {
+                    val now = System.currentTimeMillis()
+                    lastAppInfoContext = "mytime"
+                    lastAppInfoContextTime = now
+                    lastBatteryContext = "mytime"
+                    lastBatteryContextTime = now
+                    android.util.Log.d("AccessibilityService", "🖱️ CLICK-TO-CACHE: Pre-cached MyTime from click!")
+                    // No return here, let it continue to check for dangerous clicks
+                }
+                
                 // STEP 1: Check if we're in MyTime context FIRST
                 val rootNode = rootInActiveWindow
                 if (rootNode != null) {
@@ -1065,13 +1087,25 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     // Must be the explicit package name OR specific mytime text WITHOUT list context
                     val rootNode = rootInActiveWindow
                     val windowTextSearch = try { if (rootNode != null) getWindowText(rootNode).lowercase() else "" } catch (e: Exception) { "" }
-                    val commonAppCount = listOf("instagram", "facebook", "whatsapp", "chrome", "youtube", "gmail").count { windowTextSearch.contains(it) }
+                    val commonAppCount = listOf("instagram", "facebook", "whatsapp", "chrome", "youtube", "gmail", "system", "android", "google", "settings").count { windowTextSearch.contains(it) }
                     
-                    var isMyTimeScreen = combinedText.contains("com.example.mytime") || 
-                                         (windowTextSearch.contains("com.example.mytime")) ||
-                                         ((combinedText.contains("mytime") || combinedText.contains("my time")) && 
-                                          commonAppCount < 2 &&
-                                          !combinedText.contains("search") && !combinedText.contains("result"))
+                    // WHITELIST: Explicitly allow "App management", "All apps", and "Search" screens
+                    val listHeaders = listOf("search apps", "app management", "all apps", "app info", "manage apps", "app list", "app info search", "search result")
+                    val hasSearchBar = windowTextSearch.contains("search") || windowTextSearch.contains("query") || windowTextSearch.contains("type to search")
+                    val isAppListHeader = (listHeaders.any { windowTextSearch.contains(it) } || hasSearchBar) && (commonAppCount >= 2 || hasSearchBar)
+                    
+                    var isMyTimeScreen = (combinedText.contains("com.example.mytime") || 
+                                         (windowTextSearch.contains("com.example.mytime"))) && !isAppListHeader
+                    
+                    // Strict MyTime text matching: only if it's NOT a list and NOT a search result
+                    if (!isMyTimeScreen && !isAppListHeader) {
+                        // In search results, MyTime might be the ONLY result. 
+                        // So we MUST check for detail indicators even for "isMyTimeScreen"
+                        val hasDetailIndicators = listOf("force stop", "uninstall", "storage & cache", "mobile data", "battery", "permissions").any { windowTextSearch.contains(it) }
+                        
+                        isMyTimeScreen = ((combinedText.contains("mytime") || combinedText.contains("my time")) && 
+                                         !isAppListHeader && !hasSearchBar && hasDetailIndicators)
+                    }
                     
                     // If not found in text, scan the window content
                     if (!isMyTimeScreen) {
@@ -1098,21 +1132,18 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     // This prevents force stop, clear data, uninstall, and all other dangerous actions
                     if (isMyTimeScreen && (packageName.contains("settings") || packageName.contains("systemui"))) {
                         
-                        // Refined check: Ensure we are actually on an App Info/Details screen, NOT just a list/search result
-                        // We check for keywords typical of the App Info page
-                        val isAppInfoPage = combinedText.contains("force stop") || 
-                                           combinedText.contains("force close") ||
-                                           combinedText.contains("uninstall") || 
-                                           combinedText.contains("disable") ||
-                                           combinedText.contains("open") ||
-                                           combinedText.contains("storage") ||
-                                           combinedText.contains("permissions") ||
-                                           combinedText.contains("notifications") ||
-                                           combinedText.contains("app info") ||
-                                           combinedText.contains("application info")
+                        // SURGICAL: Must have detail indicators AND NOT be a list of other apps
+                        // Look for specific App Info section headers/buttons
+                        val detailIndicators = listOf("force stop", "force close", "uninstall", "disable", "storage & cache", "mobile data", "screen time", "battery", "open by default", "app details")
+                        val indicatorCount = detailIndicators.count { combinedText.contains(it) }
+                        
+                        // To be an App Info page, we need at least one strong indicator (Force Stop/Uninstall) 
+                        // OR multiple section indicators (Storage, Data, etc.)
+                        val hasStrongIndicator = combinedText.contains("force stop") || combinedText.contains("uninstall") || combinedText.contains("disable")
+                        val isAppInfoPage = (hasStrongIndicator || indicatorCount >= 2) && commonAppCount < 2
                         
                         if (isAppInfoPage) {
-                            android.util.Log.e("AccessibilityService", "🚨 INSTANT BLOCK: MyTime App Info screen detected!")
+                            android.util.Log.e("AccessibilityService", "🚨 INSTANT BLOCK (SURGICAL): MyTime App Info screen detected!")
                             showCommitmentWarning()
                             triggerGlobalActionHome(true)
                             return

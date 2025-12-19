@@ -480,30 +480,40 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             return
         }
         
-        // 0A. PROACTIVE SETTINGS CACHING - Cache MyTime context BEFORE app info/battery detection
-        // This ensures instant blocking from any entry point (like launcher caching for accessibility)
+        // 0. OPTIMIZED SETTINGS PROTECTION: Single-Pass Scan
+        // Combines Proactive Caching and Ultra-Early Blocking into one efficient operation
         val isSettings = isSettingsPackage(packageName)
         if ((event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
              event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) &&
             isSettings) {
             
-            val hasCommitment = checkCommitmentCached()
-            if (hasCommitment) {
-                try {
-                    val rootNode = rootInActiveWindow
-                    if (rootNode != null) {
+            // STRATEGY: Fast Gatekeeper -> Single Full Scan -> Logic
+            
+            // 1. FAST GATEKEEPER: Check if MyTime is even present in the hierarchy
+            // This avoids the expensive getWindowText() for 99% of settings interactions
+            try {
+                val rootNode = rootInActiveWindow
+                if (rootNode != null) {
+                    // Use the 10x faster search first
+                    var isMyTimeVisible = findMyTimePackageNameFast(rootNode)
+                    
+                    // Fallback: Check proactive cache (in case fast search missed partially loaded UI)
+                    val now = System.currentTimeMillis()
+                    val isCachedMyTime = (lastAppInfoContext == "mytime" && now - lastAppInfoContextTime < APP_INFO_CONTEXT_MEMORY_MS) ||
+                                       (lastBatteryContext == "mytime" && now - lastBatteryContextTime < APP_INFO_CONTEXT_MEMORY_MS)
+                    
+                    if (isMyTimeVisible || isCachedMyTime) {
+                        // 2. SINGLE EXPENSIVE SCAN: Only pay the cost if we suspect MyTime
                         val windowText = getWindowText(rootNode).lowercase()
-                        val now = System.currentTimeMillis()
                         
+                        // --- A. PROACTIVE CACHING LOGIC ---
                         // SURGICAL: Only cache if MyTime is the PRIMARY focus (Detail Page)
-                        // Indicators: package name OR (mytime label AND detail keywords)
-                        val isMyTimeVisible = windowText.contains("com.example.mytime") || 
+                        val isMyTimeContext = windowText.contains("com.example.mytime") || 
                                              ((windowText.contains("mytime") || windowText.contains("my time")) && 
                                               (windowText.contains("force stop") || windowText.contains("uninstall") || 
                                                windowText.contains("mah") || windowText.contains("foreground")))
                         
-                        if (isMyTimeVisible) {
-                            // Determine if it's Battery or App Info
+                        if (isMyTimeContext) {
                             if (windowText.contains("mah") || windowText.contains("usage") || windowText.contains("battery")) {
                                 lastBatteryContext = "mytime"
                                 lastBatteryContextTime = now
@@ -511,138 +521,58 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                 lastAppInfoContext = "mytime"
                                 lastAppInfoContextTime = now
                             }
-                            android.util.Log.d("AccessibilityService", "📌 PROACTIVE (SURGICAL): Cached MyTime Detail Page")
-                        } else {
-                            // Clear old cache if MyTime not visible or it's just a list
-                            if (now - lastAppInfoContextTime > APP_INFO_CONTEXT_MEMORY_MS) {
-                                lastAppInfoContext = null
-                            }
-                            if (now - lastBatteryContextTime > APP_INFO_CONTEXT_MEMORY_MS) {
-                                lastBatteryContext = null
-                            }
+                            android.util.Log.d("AccessibilityService", "📌 OPTIMIZED CACHE: Updated MyTime context")
                         }
-                    }
-                } catch (e: Exception) {
-                    // Ignore errors in proactive caching
-                }
-            }
-        }
-        
-        // 0B. ULTRA-EARLY APP INFO & BATTERY BLOCKING - Uses the proactive cache set above
-        if ((event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) &&
-            isSettings) {
-            
-            // STRATEGY 1: Use cached commitment check (saves 5-10ms)
-            val hasCommitment = checkCommitmentCached()  // ~0.1ms instead of ~10ms
-            
-            if (hasCommitment) {
-                val now = System.currentTimeMillis()
-                
-                // CRITICAL FIX: If in Commitment Mode and in Settings/SystemUI, 
-                // ALWAYS perform a quick scan if class heuristics fail or if resuming from background.
-                // This removes dependency on activity class names which can be fuzzy.
-                try {
-                    val rootNode = rootInActiveWindow
-                    val now = System.currentTimeMillis()
-                    
-                    // 1. FAST CACHE CHECK
-                    val isMyTimeAppInfo = (lastAppInfoContext == "mytime" && now - lastAppInfoContextTime < APP_INFO_CONTEXT_MEMORY_MS)
-                    val isMyTimeBattery = (lastBatteryContext == "mytime" && now - lastBatteryContextTime < APP_INFO_CONTEXT_MEMORY_MS)
-                    
-                    if (isMyTimeAppInfo || isMyTimeBattery) {
-                         // SURGICAL: Verify it's still a detail page before using cache
-                         val windowTextRaw = try { if (rootNode != null) getWindowText(rootNode).lowercase() else "" } catch (e: Exception) { "" }
-                         val eventTextRaw = event.text?.toString()?.lowercase() ?: ""
-                         val combinedTextRaw = "$windowTextRaw $eventTextRaw"
-                         
-                         // Must have explicit package name OR (MyTime app name AND a detail indicator)
-                         val hasExplicitPackage = combinedTextRaw.contains("com.example.mytime")
-                         val hasAppName = combinedTextRaw.contains("mytime") || combinedTextRaw.contains("my time")
-                         
-                         // Structural List Detection
-                         val otherAppsCount = listOf("instagram", "facebook", "whatsapp", "chrome", "youtube", "gmail", "system", "android", "google", "settings").count { windowTextRaw.contains(it) }
-                         val listHeadersStr = listOf("search apps", "app management", "all apps", "manage apps", "app list")
-                         val hasListHeader = listHeadersStr.any { windowTextRaw.contains(it) }
-                         val hasSearchBar = windowTextRaw.contains("search") || windowTextRaw.contains("query")
-                         val isListScreen = (otherAppsCount >= 2 || hasListHeader || hasSearchBar)
-                         
-                         // Detail Indicators
-                         val hasStrongIndicator = windowTextRaw.contains("force stop") || windowTextRaw.contains("uninstall") || windowTextRaw.contains("disable") || windowTextRaw.contains("accessibility")
-                         val detailCountInt = listOf("storage & cache", "mobile data", "battery", "permissions", "notifications").count { windowTextRaw.contains(it) }
-                         val isActualDetailPage = hasStrongIndicator || detailCountInt >= 2
-                         
-                         // BLOCK ONLY IF: It's MyTime AND definitively a detail page/dialog AND NOT a list
-                         // Added "uninstall" confirmation dialog support
-                         val isUninstallDialog = hasAppName && (windowTextRaw.contains("uninstall") || windowTextRaw.contains("ok") || windowTextRaw.contains("delete"))
-                         val shouldBlock = ((hasExplicitPackage || hasAppName) && isActualDetailPage && !isListScreen) || isUninstallDialog
-                         
-                         if (shouldBlock) {
-                             android.util.Log.e("AccessibilityService", "⚡ ULTRA-FAST CACHED BLOCK: MyTime Context (${if(isUninstallDialog) "Dialog" else "Detail"})!")
-                             showCommitmentWarning()
-                             triggerGlobalActionHome(immediate = true)
-                             return
-                         }
-                    }
-                    
-                    // 2. IMMEDIATE SCAN
-                    val eventText = event.text?.toString()?.lowercase() ?: ""
-                    val eventDesc = event.contentDescription?.toString()?.lowercase() ?: ""
-                    val combinedEventText = "$eventText $eventDesc"
-                    
-                    // Surgical detection: requires package name or specific detail indicators
-                    val isExplicitPackage = combinedEventText.contains("com.example.mytime")
-                    val isMyTimeDetail = (combinedEventText.contains("mytime") || combinedEventText.contains("my time")) && 
-                                        (combinedEventText.contains("mah") || combinedEventText.contains("foreground") || 
-                                         combinedEventText.contains("usage") || combinedEventText.contains("battery"))
-                    
-                    var isMyTimeDetected = isExplicitPackage || isMyTimeDetail
-                    
-                    if (!isMyTimeDetected && rootNode != null) {
-                        isMyTimeDetected = findMyTimePackageNameFast(rootNode)
-                        if (!isMyTimeDetected) {
-                            val windowText = try { getWindowText(rootNode).lowercase() } catch (e: Exception) { "" }
-                            val hasMyTime = windowText.contains("mytime") || windowText.contains("my time")
-                            val isBatteryDetail = windowText.contains("mah") && windowText.contains("foreground")
-                            isMyTimeDetected = (hasMyTime && isBatteryDetail) || (isExplicitPackage)
-                        }
-                    }
-                    
-                    if (isMyTimeDetected) {
-                         // SURGICAL: Final verification that it's NOT a list before blocking
-                         val rootNodeVer = rootInActiveWindow
-                         val windowText = try { if (rootNodeVer != null) getWindowText(rootNodeVer).lowercase() else "" } catch (e: Exception) { "" }
-                         val otherApps = listOf("instagram", "facebook", "whatsapp", "chrome", "youtube", "gmail", "system", "android", "google", "settings")
-                         val otherAppCount = otherApps.count { windowText.contains(it) }
-                         
-                         val isExplicitDetail = windowText.contains("com.example.mytime") && 
-                                               (windowText.contains("force stop") || windowText.contains("uninstall") || 
-                                                windowText.contains("storage") || windowText.contains("data") || windowText.contains("accessibility"))
-                         
-                         val listHeaders = listOf("search apps", "app management", "all apps", "manage apps", "app list")
-                         val hasListHeader = listHeaders.any { windowText.contains(it) }
-                         val hasSearchBar = windowText.contains("search") || windowText.contains("query")
-                         val isList = otherAppCount >= 2 || hasListHeader || hasSearchBar
-                         
-                         if ((!isList && isMyTimeDetected) || isExplicitDetail) {
-                             // Update cache for future instant blocks
-                             if (combinedEventText.contains("mah") || combinedEventText.contains("battery") || combinedEventText.contains("power")) {
-                                 lastBatteryContext = "mytime"
-                                 lastBatteryContextTime = now
-                             } else {
-                                 lastAppInfoContext = "mytime"
-                                 lastAppInfoContextTime = now
-                             }
+                        
+                        // --- B. BLOCKING VERIFICATION LOGIC ---
+                        val hasCommitment = checkCommitmentCached()
+                        if (hasCommitment) {
+                             // Structural List Detection (to avoid blocking the usage list itself)
+                             val otherAppsCount = listOf("instagram", "facebook", "whatsapp", "chrome", "youtube", "gmail", "system", "android", "google", "settings").count { windowText.contains(it) }
                              
-                             android.util.Log.e("AccessibilityService", "⚡ ULTRA-FAST INSTANT BLOCK: MyTime Settings/Battery! (Confirmed Surgical)")
-                             showCommitmentWarning()
-                             triggerGlobalActionHome(immediate = true)
-                             return
-                         }
+                             // IMPROVED HEURISTIC: Count '%' symbols. Battery lists have many (usually > 3), detail pages have few (0-2).
+                             val percentCount = windowText.count { it == '%' }
+                             
+                             val listHeadersStr = listOf("search apps", "app management", "all apps", "manage apps", "app list", 
+                                                       "usage since", "last full charge", "screen usage", "battery usage", "high power")
+                             val hasListHeader = listHeadersStr.any { windowText.contains(it) }
+                             
+                             // Also check for search bar indicators if no list header found
+                             val hasSearchBar = windowText.contains("search") || windowText.contains("query")
+                             
+                             // It is a list if multiple apps shown OR explicit header found OR many percentages shown
+                             val isListScreen = (otherAppsCount >= 2 || hasListHeader || hasSearchBar || percentCount >= 3)
+                             
+                             // Detect Detail Indicators (Strict)
+                             val hasStrongIndicator = windowText.contains("force stop") || windowText.contains("uninstall") || windowText.contains("disable") || windowText.contains("accessibility") ||
+                                                      // Battery Detail Specifics (Strict)
+                                                      windowText.contains("allow background") || windowText.contains("background usage") ||
+                                                      windowText.contains("optimized") || windowText.contains("restricted") || windowText.contains("unrestricted")
+                             
+                             // WEAK INDICATORS: Must have 2+ to confirm it's a detail page
+                             // REMOVED "battery" to prevent false positives in lists
+                             val detailCountInt = listOf("storage & cache", "mobile data", "permissions", "notifications", "screen time", "defaults", "open by default").count { windowText.contains(it) }
+                             val isActualDetailPage = hasStrongIndicator || detailCountInt >= 2
+                             
+                             // "Uninstall" dialog detection
+                             val isUninstallDialog = (windowText.contains("mytime") || windowText.contains("my time")) && 
+                                                    (windowText.contains("uninstall") || windowText.contains("ok") || windowText.contains("delete"))
+
+                             // FINAL BLOCK DECISION
+                             val shouldBlock = (isMyTimeContext && isActualDetailPage && !isListScreen) || isUninstallDialog
+                             
+                             if (shouldBlock) {
+                                 android.util.Log.e("AccessibilityService", "⚡ FAST BLOCK: MyTime Context Detected (Single-Pass Detection)!")
+                                 showCommitmentWarning()
+                                 triggerGlobalActionHome(immediate = true)
+                                 return
+                             }
+                        }
                     }
-                } catch (e: Exception) {
-                    android.util.Log.e("AccessibilityService", "Error in ultra-early protection: ${e.message}")
                 }
+            } catch (e: Exception) {
+                // Fail safe: If optimization fails, do nothing (let standard checks handle it)
+                android.util.Log.e("AccessibilityService", "Error in optimized scan: ${e.message}")
             }
         }
         
@@ -680,6 +610,20 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             val clickedId = try { event.source?.viewIdResourceName ?: "" } catch (e: Exception) { "" }
             
             android.util.Log.d("AccessibilityService", "🖱️ CLICK: id=$clickedId, text=$clickedText, desc=$clickedDesc, pkg=${event.packageName}")
+            
+            // A. PRE-EMPTIVE BLOCK: Clicking "MyTime" in Settings
+            // This satisfies "kick out without loading the full ui"
+            if ((clickedText.contains("mytime") || clickedDesc.contains("mytime")) && isSettingsPackage(packageName)) {
+                 android.util.Log.e("AccessibilityService", "⚡ CLICK BLOCK: User clicked 'MyTime' in Settings!")
+                 
+                 // Update cache to ensure subsequent page load is also anticipated
+                 lastAppInfoContext = "mytime"
+                 lastAppInfoContextTime = System.currentTimeMillis()
+                 
+                 showCommitmentWarning()
+                 triggerGlobalActionHome(immediate = true)
+                 return
+            }
             
             // A. PROACTIVE CACHING: Catch clicks/long-clicks on "MyTime" in ANY app (especially Launchers)
             // If user interacts with MyTime icon, we pre-cache it as the target.
@@ -1480,6 +1424,18 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     fun triggerGlobalActionHome(immediate: Boolean = false) {
     val now = System.currentTimeMillis()
     
+    // SAFETY CHECK: Never trigger home if MyTime is already in the foreground!
+    // This prevents "black screen" issues where a delayed block from Settings kills MyTime startup
+    try {
+        val currentPkg = rootInActiveWindow?.packageName?.toString()
+        if (currentPkg == "com.example.mytime") {
+            android.util.Log.d("AccessibilityService", "⚠️ Safety mechanism: Aborted HOME action because MyTime is foreground")
+            return
+        }
+    } catch (e: Exception) {
+        // Ignore
+    }
+    
     // THROTTLE: Use different throttles for security vs routine blocking
     val throttleMs = if (immediate) 100 else 500
     if (now - lastBlockTriggerTime < throttleMs) {
@@ -1502,9 +1458,22 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         performGlobalAction(GLOBAL_ACTION_HOME)
         
         if (immediate) {
-            handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_HOME) }, 40)
-            handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_HOME) }, 100)
-            handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_HOME) }, 200)
+            // RELIABILITY: Send multiple home presses for stubborn processing
+            // BUT ensure we don't accidentally kill MyTime if user switches fast
+            val safeHomeAction = Runnable { 
+                try {
+                    val pkg = rootInActiveWindow?.packageName?.toString()
+                    if (pkg != "com.example.mytime") {
+                        performGlobalAction(GLOBAL_ACTION_HOME) 
+                    }
+                } catch(e: Exception) {
+                    performGlobalAction(GLOBAL_ACTION_HOME) // Fallback
+                }
+            }
+            
+            handler.postDelayed(safeHomeAction, 40)
+            handler.postDelayed(safeHomeAction, 100)
+            handler.postDelayed(safeHomeAction, 200)
         }
     } catch (e: Exception) {
         android.util.Log.e("AccessibilityService", "Failed to perform home action: ${e.message}")

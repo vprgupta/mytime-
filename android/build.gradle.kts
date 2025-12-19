@@ -14,6 +14,16 @@ rootProject.layout.buildDirectory.value(newBuildDir)
 subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
+    
+    // FORCE FIX: Ensure all plugins use at least API 34 to avoid "lStar not found" errors
+    afterEvaluate {
+        if (project.hasProperty("android")) {
+            val android = project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
+            if (android.compileSdkVersion == null || (android.compileSdkVersion!!.substringAfter("android-").toIntOrNull() ?: 0) < 34) {
+                 android.compileSdkVersion(34)
+            }
+        }
+    }
 }
 subprojects {
     project.evaluationDependsOn(":app")

@@ -212,7 +212,22 @@ class MainActivity : FlutterActivity() {
                     val packageName = call.argument<String>("packageName")
                     if (packageName != null) {
                         limitedPackages.remove(packageName)
-                        android.util.Log.d("MainActivity", "⏱️ Removed limited app: $packageName")
+                        limitedApps.remove(packageName)
+                        
+                        // CRITICAL: Also remove from usage tracking state
+                        usageLimits.remove(packageName)
+                        usageToday.remove(packageName)
+                        accumulatedUsage.remove(packageName)
+                        
+                        // CRITICAL: Unblock immediately if it was blocked due to limit
+                        blockedPackages.remove(packageName)
+                        blockedApps.remove(packageName)
+                        
+                        // CLEAR PERSISTENT STATE
+                        removeBlockingSession(packageName)
+                        AppBlockingAccessibilityService.instance?.clearUsageStats(packageName)
+                        
+                        android.util.Log.d("MainActivity", "⏱️ Removed limited app and fully cleared persistence: $packageName")
                     }
                     result.success(null)
                 }
@@ -385,7 +400,15 @@ class MainActivity : FlutterActivity() {
                     val packageName = call.argument<String>("packageName")
                     if (packageName != null) {
                         AppBlockingAccessibilityService.removeLaunchLimit(packageName)
-                        android.util.Log.d("MainActivity", "🗑️ Removed launch limit for $packageName")
+                        
+                        // CRITICAL: Also ensure it's removed from global blocked lists in MainActivity
+                        blockedPackages.remove(packageName)
+                        blockedApps.remove(packageName)
+                        
+                        // CLEAR PERSISTENT STATE
+                        removeBlockingSession(packageName)
+                        
+                        android.util.Log.d("MainActivity", "🗑️ Removed launch limit and fully cleared persistence for $packageName")
                         result.success(true)
                     } else {
                         result.success(false)

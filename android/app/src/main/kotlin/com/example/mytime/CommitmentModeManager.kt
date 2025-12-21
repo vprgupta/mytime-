@@ -290,29 +290,36 @@ class CommitmentModeManager(private val context: Context) {
      * Clear commitment (only if expired)
      */
     fun clearIfExpired() {
-        if (!isCommitmentActive() && getCommitmentEndTime() > 0) {
-            prefs.edit().clear().apply()
-            
-            // Clear legacy location
-            context.getSharedPreferences("MyTaskPrefs", Context.MODE_PRIVATE)
-                .edit()
-                .remove("uninstall_lock_end_time")
-                .apply()
-            
-            // Clear external backup
-            try {
-                val backupFile = File(context.externalCacheDir, EXTERNAL_BACKUP_FILE)
-                if (backupFile.exists()) {
-                    backupFile.delete()
+        val isActive = isCommitmentActive()
+        val hasEndTime = getCommitmentEndTime() > 0
+        
+        if (!isActive) {
+            if (hasEndTime) {
+                // Clear all commitment data
+                prefs.edit().clear().apply()
+                
+                // Clear legacy location
+                context.getSharedPreferences("MyTaskPrefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .remove("uninstall_lock_end_time")
+                    .apply()
+                
+                // Clear external backup
+                try {
+                    val backupFile = File(context.externalCacheDir, EXTERNAL_BACKUP_FILE)
+                    if (backupFile.exists()) {
+                        backupFile.delete()
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to delete external backup", e)
                 }
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to delete external backup", e)
+                
+                Log.d(TAG, "✅ Commitment data cleared (expired)")
             }
             
-            // CRITICAL: Disable Device Admin protections
+            // ALWAYS try to stop services if not active, even if prefs were already cleared
+            // This acts as a regular fail-safe for stray services
             disableProtections()
-            
-            Log.d(TAG, "✅ Commitment cleared (expired) - Protections disabled")
         }
     }
     

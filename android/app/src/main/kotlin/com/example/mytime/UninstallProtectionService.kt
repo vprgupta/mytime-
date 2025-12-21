@@ -49,6 +49,14 @@ class UninstallProtectionService : Service() {
     
     private fun preventUninstall(context: Context?) {
         try {
+            // CRITICAL FAIL-SAFE: Check if commitment is actually active before blocking
+            val manager = CommitmentModeManager(context ?: return)
+            if (!manager.isCommitmentActive()) {
+                Log.d("UninstallProtection", "Allowing uninstall - Commitment Mode is NOT active")
+                stopSelf() // Stop yourself if already expired but still running
+                return
+            }
+
             // Bring app to foreground to interrupt uninstall
             val intent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or 

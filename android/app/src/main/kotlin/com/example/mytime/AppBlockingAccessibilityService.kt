@@ -150,14 +150,15 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         fun removeLaunchLimit(packageName: String) {
             launchLimits.remove(packageName)
             launchCounts.remove(packageName)
-            instance?.clearLaunchCount(packageName) // Ensure this method exists or remove if not needed
+            instance?.clearLaunchCount(packageName)
             
-            // Remove from blocked list if it was blocked due to launch limit
+            // CRITICAL: Unblock app immediately
             MainActivity.blockedPackages.remove(packageName)
+            removeBlockedApp(packageName) // Ensure it's removed from any service-level lists
             
             // Persist immediately
             instance?.saveLaunchLimits()
-            android.util.Log.d("AccessibilityService", "🗑️ Removed launch limit for $packageName and unblocked if necessary")
+            android.util.Log.d("AccessibilityService", "🗑️ Removed launch limit for $packageName and unblocked")
         }
         
         @JvmStatic
@@ -226,6 +227,13 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             
             android.util.Log.d("AccessibilityService", "📱 App launched: $packageName ($count/$limit)")
             
+            // Notify Flutter on EVERY successful launch count (even if not blocked)
+            try {
+                MainActivity.instance?.notifyAppLaunched(packageName)
+            } catch (e: Exception) {
+                // Ignore
+            }
+
             if (count > limit) {
                 android.util.Log.d("AccessibilityService", "🚫 Launch limit exceeded for $packageName - adding to blocked list")
                 // Add to blocked packages so it stays blocked for the rest of the day
@@ -281,12 +289,12 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 packageName.contains("devicehealth") || packageName.contains("securitycenter") || 
                 packageName.contains("safecenter") || packageName.contains("coloros") || 
                 packageName.contains("oplus") || packageName.contains("miui") || 
-                packageName.contains("samsung")) return true
+                packageName.contains("samsung") || packageName.contains("wellbeing")) return true
             
             // Check for other manufacturer components
             val indicators = listOf(
-                "permission", "vending", "batteryoptimize", "powermonitor",
-                "oneplus", "vivo", "iqoo", "realme", "huawei", "honor", "motorola"
+                "permission", "vending", "batteryoptimize", "powermonitor", "security",
+                "oneplus", "vivo", "iqoo", "realme", "huawei", "honor", "motorola", "xiaomi"
             )
             if (indicators.any { packageName.contains(it) }) return true
             
@@ -350,6 +358,21 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             android.util.Log.v("AccessibilityService", "💾 Saved stats for $packageName: $used/$limit (Acc: $accumulated)")
         } catch (e: Exception) {
             android.util.Log.e("AccessibilityService", "Failed to save usage stats: ${e.message}")
+        }
+    }
+
+    fun clearUsageStats(packageName: String) {
+        try {
+            val prefs = applicationContext.getSharedPreferences("UsageLimits", android.content.Context.MODE_PRIVATE)
+            prefs.edit().apply {
+                remove("limit_$packageName")
+                remove("used_$packageName")
+                remove("acc_$packageName")
+                apply()
+            }
+            android.util.Log.d("AccessibilityService", "🗑️ Cleared persistent usage stats for $packageName")
+        } catch (e: Exception) {
+            android.util.Log.e("AccessibilityService", "Failed to clear usage stats: ${e.message}")
         }
     }
     
@@ -460,7 +483,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                           combinedClickText.contains("delete") ||
                                           combinedClickText.contains("remove")
                     
-                    if (isDangerousClick) {
+                    if (isDangerousClick && checkCommitmentCached()) {
                         // Double check surgical precision before blocking a click
                         val isExplicitMyTime = windowText.contains("com.example.mytime") || 
                                               (windowText.contains("mytime") && !windowText.contains("search"))
@@ -614,15 +637,17 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             // A. PRE-EMPTIVE BLOCK: Clicking "MyTime" in Settings
             // This satisfies "kick out without loading the full ui"
             if ((clickedText.contains("mytime") || clickedDesc.contains("mytime")) && isSettingsPackage(packageName)) {
-                 android.util.Log.e("AccessibilityService", "⚡ CLICK BLOCK: User clicked 'MyTime' in Settings!")
-                 
-                 // Update cache to ensure subsequent page load is also anticipated
-                 lastAppInfoContext = "mytime"
-                 lastAppInfoContextTime = System.currentTimeMillis()
-                 
-                 showCommitmentWarning()
-                 triggerGlobalActionHome(immediate = true)
-                 return
+                 if (checkCommitmentCached()) {
+                     android.util.Log.e("AccessibilityService", "⚡ CLICK BLOCK: User clicked 'MyTime' in Settings!")
+                     
+                     // Update cache to ensure subsequent page load is also anticipated
+                     lastAppInfoContext = "mytime"
+                     lastAppInfoContextTime = System.currentTimeMillis()
+                     
+                     showCommitmentWarning()
+                     triggerGlobalActionHome(immediate = true)
+                     return
+                 }
             }
             
             // A. PROACTIVE CACHING: Catch clicks/long-clicks on "MyTime" in ANY app (especially Launchers)
@@ -655,7 +680,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                           combinedClickText.contains("delete") ||
                                           combinedClickText.contains("remove")
                     
-                    if (isDangerousClick) {
+                    if (isDangerousClick && checkCommitmentCached()) {
                         // Double check surgical precision before blocking a click
                         val isExplicitMyTime = windowText.contains("com.example.mytime") || 
                                               (windowText.contains("mytime") && !windowText.contains("search"))
@@ -690,6 +715,12 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             
+            // CRITICAL: TYPE_WINDOW_STATE_CHANGED contains launch info, BYPASS debounce
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                processEvent(event)
+                return
+            }
+
             if (isProcessing.compareAndSet(false, true)) {
                 processEvent(event)
                 handler.postDelayed({ isProcessing.set(false) }, 100)
@@ -720,7 +751,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 val shouldCount = if (isDifferentApp) {
                     timeSinceLastCount > 500  // Different app: require 500ms gap
                 } else {
-                    timeSinceLastCount > 2000  // Same app: require 2 second gap (counts background resumes)
+                    timeSinceLastCount > 1500  // Same app: require 1.5 second gap (counts background resumes)
                 }
                 
                 if (shouldCount) {
@@ -802,11 +833,12 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                             val rootNode = rootInActiveWindow
                             if (rootNode != null) {
                                 val windowText = getWindowText(rootNode).lowercase()
-                                val isMyTimeContext = windowText.contains("mytime") ||
-                                                     windowText.contains("my time") ||
-                                                     windowText.contains("com.example.mytime")
+                                val isBlockedAppContext = windowText.contains("com.example.mytime") ||
+                                                         windowText.contains("mytime") ||
+                                                         windowText.contains("my time") ||
+                                                         MainActivity.blockedPackages.any { pkg -> windowText.contains(pkg) }
                                 
-                                if (isMyTimeContext) {
+                                if (isBlockedAppContext && MainActivity.isCommitmentActive) {
                                     android.util.Log.d("AccessibilityService", "🛡️ BLOCKED: Force Stop button click for MyTime!")
                                     showCommitmentWarning()
                                     triggerGlobalActionHome(true)
@@ -835,11 +867,12 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                             val rootNode = rootInActiveWindow
                             if (rootNode != null) {
                                 val windowText = getWindowText(rootNode).lowercase()
-                                val isMyTimeContext = windowText.contains("mytime") ||
-                                                     windowText.contains("my time") ||
-                                                     windowText.contains("com.example.mytime")
+                                val isBlockedAppContext = windowText.contains("com.example.mytime") ||
+                                                         windowText.contains("mytime") ||
+                                                         windowText.contains("my time") ||
+                                                         MainActivity.blockedPackages.any { pkg -> windowText.contains(pkg) }
                                 
-                                if (isMyTimeContext) {
+                                if (isBlockedAppContext && MainActivity.isCommitmentActive) {
                                     android.util.Log.d("AccessibilityService", "🛡️ BLOCKED: Uninstall/Deactivate button click for MyTime!")
                                     showCommitmentWarning()
                                     triggerGlobalActionHome(true)
@@ -924,16 +957,17 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                 return@processEvent  // Skip MyTime detection for this event
                             }
                             
-                            // Check for MyTime in current window first
-                            var isMyTimeUninstall = windowText.contains("mytime") ||
+                            // Check for MyTime or BLOCKED APP in current window first
+                            var isProtectedAppUninstall = windowText.contains("com.example.mytime") ||
+                                                   windowText.contains("mytime") ||
                                                    windowText.contains("my time") ||
-                                                   windowText.contains("com.example.mytime")
+                                                   MainActivity.blockedPackages.any { pkg -> windowText.contains(pkg) }
                             
                             // CRITICAL: Use cached launcher context ONLY if:
                             // 1. We're in launcher package
                             // 2. Current window looks like launcher (has app icons, not other app content)
                             // 3. Cache is recent
-                            if (isLauncher && !isMyTimeUninstall) {
+                            if (isLauncher && !isProtectedAppUninstall) {
                                 val now = System.currentTimeMillis()
                                 
                                 // Verify this is actually launcher UI, not another app showing in launcher
@@ -948,8 +982,8 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                 if (looksLikeLauncher && 
                                     lastLauncherContext == "mytime" && 
                                     now - lastLauncherContextTime < LAUNCHER_CONTEXT_MEMORY_MS) {
-                                    isMyTimeUninstall = true
-                                    android.util.Log.d("AccessibilityService", "🔄 Using cached launcher context for MyTime detection")
+                                    isProtectedAppUninstall = true
+                                    android.util.Log.d("AccessibilityService", "🔄 Using cached launcher context for protected app detection")
                                 }
                             }
                             
@@ -970,11 +1004,11 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                 windowText.contains("keep on")
                             }
                             
-                            android.util.Log.d("AccessibilityService", "🎯 Is MyTime: $isMyTimeUninstall, Has uninstall text: $hasUninstallText")
+                            android.util.Log.d("AccessibilityService", "🎯 Is Protected App: $isProtectedAppUninstall, Has uninstall text: $hasUninstallText")
                             
-                            // EXPANDED: Block if MyTime is detected AND we see disable/uninstall-related text
+                            // EXPANDED: Block if protected app is detected AND we see disable/uninstall-related text
                             // OR if Commitment Mode is active and we're in Settings (more aggressive)
-                            if (isMyTimeUninstall) {
+                            if (isProtectedAppUninstall) {
                                 val shouldBlock = hasUninstallText || (hasAnyCommitment && !isLauncher)
                                 
                                 if (shouldBlock) {
@@ -1063,33 +1097,34 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     val hasSearchBar = windowTextSearch.contains("search") || windowTextSearch.contains("query") || windowTextSearch.contains("type to search")
                     val isAppListHeader = (listHeaders.any { windowTextSearch.contains(it) } || hasSearchBar) && (commonAppCount >= 2 || hasSearchBar)
                     
-                    var isMyTimeScreen = (combinedText.contains("com.example.mytime") || 
-                                         (windowTextSearch.contains("com.example.mytime"))) && !isAppListHeader
+                    var isProtectedAppScreen = (combinedText.contains("com.example.mytime") || 
+                                               windowTextSearch.contains("com.example.mytime") ||
+                                               MainActivity.blockedPackages.any { pkg -> combinedText.contains(pkg) || windowTextSearch.contains(pkg) }) && !isAppListHeader
                     
                     // Strict MyTime text matching: only if it's NOT a list and NOT a search result
-                    if (!isMyTimeScreen && !isAppListHeader) {
+                    if (!isProtectedAppScreen && !isAppListHeader) {
                         // In search results, MyTime might be the ONLY result. 
-                        // So we MUST check for detail indicators even for "isMyTimeScreen"
+                        // So we MUST check for detail indicators even for "isProtectedAppScreen"
                         val hasDetailIndicators = listOf("force stop", "uninstall", "storage & cache", "mobile data", "battery", "permissions").any { windowTextSearch.contains(it) }
                         
-                        isMyTimeScreen = ((combinedText.contains("mytime") || combinedText.contains("my time")) && 
+                        isProtectedAppScreen = ((combinedText.contains("mytime") || combinedText.contains("my time")) && 
                                          !isAppListHeader && !hasSearchBar && hasDetailIndicators)
                     }
                     
                     // If not found in text, scan the window content
-                    if (!isMyTimeScreen) {
+                    if (!isProtectedAppScreen) {
                         val rootNode = rootInActiveWindow
                         if (rootNode != null) {
-                            isMyTimeScreen = isScreenRelatedToApp(rootNode)
+                            isProtectedAppScreen = isScreenRelatedToApp(rootNode)
                             
                             // Additional check: scan for package name in window
-                            if (!isMyTimeScreen) {
+                            if (!isProtectedAppScreen) {
                                 val windowText = getWindowText(rootNode).lowercase()
-                                isMyTimeScreen = windowText.contains("com.example.mytime") ||
+                                isProtectedAppScreen = windowText.contains("com.example.mytime") ||
                                                 ((windowText.contains("mytime") || windowText.contains("my time")) && 
                                                  !windowText.contains("search") && !windowText.contains("result") && !windowText.contains("inbox"))
                                 
-                                if (isMyTimeScreen) {
+                                if (isProtectedAppScreen) {
                                     android.util.Log.d("AccessibilityService", "🔍 Found MyTime via package name scan")
                                 }
                             }
@@ -1097,9 +1132,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     }
                     
                     
-                    // STEP 2: COMPLETE BLOCKING - Block entire MyTime settings screen during commitment
-                    // This prevents force stop, clear data, uninstall, and all other dangerous actions
-                    if (isMyTimeScreen && (packageName.contains("settings") || packageName.contains("systemui"))) {
+                    if (isProtectedAppScreen && MainActivity.isCommitmentActive && (packageName.contains("settings") || packageName.contains("systemui"))) {
                         
                         // SURGICAL: Must have detail indicators AND NOT be a list of other apps
                         // Look for specific App Info section headers/buttons
@@ -1109,9 +1142,44 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                         // To be an App Info page, we need at least one strong indicator (Force Stop/Uninstall) 
                         // OR multiple section indicators (Storage, Data, etc.)
                         val hasStrongIndicator = combinedText.contains("force stop") || combinedText.contains("uninstall") || combinedText.contains("disable")
-                        val isAppInfoPage = (hasStrongIndicator || indicatorCount >= 2) && commonAppCount < 2
+                        
+                        // STRUCTURAL & ID DETECTION: Enhance for non-English systems
+                        var structuralIndicator = false
+                        try {
+                            val rootNode = rootInActiveWindow
+                            if (rootNode != null) {
+                                // Check for common dangerous button resource IDs
+                                val dangerousIds = listOf(
+                                    "com.android.settings:id/button1", // Common Uninstall/Force Stop ID
+                                    "com.android.settings:id/right_button",
+                                    "com.miui.securitycenter:id/ok_button",
+                                    "com.samsung.android.settings:id/button_uninstall",
+                                    "com.samsung.android.settings:id/button_force_stop"
+                                )
+                                
+                                // Scan for any of these IDs
+                                structuralIndicator = dangerousIds.any { id -> 
+                                    !rootNode.findAccessibilityNodeInfosByViewId(id).isNullOrEmpty() 
+                                }
+                            }
+                        } catch (e: Exception) {}
+
+                        val isAppInfoPage = (hasStrongIndicator || structuralIndicator || indicatorCount >= 2) && commonAppCount < 2
                         
                         if (isAppInfoPage) {
+                            // EXTRA SURGICAL CHECK for SystemUI: 
+                            // Only block SystemUI if we are EXPLICITLY in a dangerous dialog, 
+                            // not just because a notification mentioned MyTime.
+                            if (packageName == "com.android.systemui") {
+                                val dangerousDialog = windowTextSearch.contains("uninstall") || 
+                                                     windowTextSearch.contains("deactivate") || 
+                                                     windowTextSearch.contains("force stop")
+                                if (!dangerousDialog) {
+                                    android.util.Log.d("AccessibilityService", "✅ SystemUI exclusion: Allowing notification shade/transient")
+                                    return
+                                }
+                            }
+
                             android.util.Log.e("AccessibilityService", "🚨 INSTANT BLOCK (SURGICAL): MyTime App Info screen detected!")
                             showCommitmentWarning()
                             triggerGlobalActionHome(true)
@@ -1121,7 +1189,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     
                     // Separate check: Always block accessibility settings for MyTime
                     // This needs comprehensive detection for all manufacturers
-                    if (isMyTimeScreen) {
+                    if (isProtectedAppScreen && MainActivity.isCommitmentActive) {
                         val isAccessibilityScreen = combinedText.contains("accessibility") ||
                                                    combinedText.contains("service") ||
                                                    combinedText.contains("switch") ||
@@ -1152,7 +1220,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                     
                     // INSTANT BATTERY BLOCKING: MyTime-specific detection only
                     // Battery apps might be in different packages (com.oplus.battery, etc.)
-                    if (isMyTimeScreen) {
+                    if (isProtectedAppScreen && MainActivity.isCommitmentActive) {
                         val now = System.currentTimeMillis()
                         
                         // PRIORITY 1: Check cached context FIRST if in battery context
@@ -1172,11 +1240,12 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                                     val rootNode = rootInActiveWindow
                                     if (rootNode != null) {
                                         val quickCheck = getWindowText(rootNode).lowercase()
-                                        val isActuallyMyTime = quickCheck.contains("mytime") ||
+                                        val isActuallyProtected = quickCheck.contains("com.example.mytime") ||
+                                                              quickCheck.contains("mytime") ||
                                                               quickCheck.contains("my time") ||
-                                                              quickCheck.contains("com.example.mytime")
+                                                              MainActivity.blockedPackages.any { pkg -> quickCheck.contains(pkg) }
                                         
-                                        if (isActuallyMyTime) {
+                                        if (isActuallyProtected) {
                                             android.util.Log.d("AccessibilityService", "🔋 CACHED BLOCK: MyTime Battery!")
                                             showCommitmentWarning()
                                             triggerGlobalActionHome(true)
@@ -1233,8 +1302,8 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                         }
                     }
                     
-                    // Separate check: Always block package installer for MyTime
-                    if (isMyTimeScreen && packageName.contains("packageinstaller")) {
+                    // Separate check: Always block package installer for protected apps
+                    if (isProtectedAppScreen && MainActivity.isCommitmentActive && packageName.contains("packageinstaller")) {
                         android.util.Log.d("AccessibilityService", "🛡️ Blocked: MyTime Uninstall Dialog")
                         showCommitmentWarning()
                         triggerGlobalActionHome(true)
@@ -1248,8 +1317,13 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             }
 
             // 3. Usage Limiter Tracking
-            if (currentLimitedApp != null && currentLimitedApp != packageName) {
-                // App switched away from limited app
+            // CRITICAL FIX: Ignore transient system packages for usage state switching
+            val isTransientPackage = packageName == "com.android.systemui" || 
+                                    packageName == "com.android.settings" || // Settings is often transient (dialogs)
+                                    isSettingsPackage(packageName) // Covers various manufacturer system packages
+            
+            if (currentLimitedApp != null && currentLimitedApp != packageName && !isTransientPackage) {
+                // App switched away from limited app (and it's not a transient system UI)
                 
                 // Calculate partial usage before stopping
                 val now = System.currentTimeMillis()
@@ -1453,8 +1527,15 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     
     lastBlockTriggerTime = now
     
-    // CRITICAL: Perform the home action IMMEDIATELY
+    // CRITICAL: Perform the home action IMMEDIATELY if safe
     try {
+        // RACE CONDITION FIX: Final check right before performance
+        val currentPkgBeforeAction = try { rootInActiveWindow?.packageName?.toString() } catch (e: Exception) { null }
+        if (currentPkgBeforeAction == "com.example.mytime") {
+             android.util.Log.d("AccessibilityService", "⚠️ Race Condition: Aborted HOME action at execution time")
+             return
+        }
+
         performGlobalAction(GLOBAL_ACTION_HOME)
         
         if (immediate) {
@@ -1463,11 +1544,13 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             val safeHomeAction = Runnable { 
                 try {
                     val pkg = rootInActiveWindow?.packageName?.toString()
-                    if (pkg != "com.example.mytime") {
+                    if (pkg != "com.example.mytime" && pkg != null) {
                         performGlobalAction(GLOBAL_ACTION_HOME) 
+                    } else {
+                        android.util.Log.d("AccessibilityService", "⚠️ Delayed Home Check: MyTime detected, skipping ghost action")
                     }
                 } catch(e: Exception) {
-                    performGlobalAction(GLOBAL_ACTION_HOME) // Fallback
+                    // Safety: if we can't check, DON'T perform action to avoid ghost kick-out
                 }
             }
             
@@ -1666,41 +1749,24 @@ class AppBlockingAccessibilityService : AccessibilityService() {
      */
     private fun checkForAnyActiveCommitments(): Boolean {
         try {
-            // Check strict mode commitment
-            if (MainActivity.isCommitmentActive) {
-                return true
-            }
+            val commitmentManager = CommitmentModeManager(applicationContext)
+            val isActive = commitmentManager.isCommitmentActive()
             
-            // Fallback check for strict mode
-            try {
-                val commitmentManager = CommitmentModeManager(applicationContext)
-                if (commitmentManager.isCommitmentActive()) {
-                    MainActivity.isCommitmentActive = true
-                    return true
-                }
-            } catch (e: Exception) {
-                // Ignore
-            }
-            
-            // Check usage limiter commitments
-            val prefs = applicationContext.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val keys = prefs.all.keys
-            
-            for (key in keys) {
-                if (key.startsWith("flutter.usage_limit_durations_")) {
-                    val value = prefs.getString(key, null)
-                    if (value != null && value.contains("\"hasCommitment\":true")) {
-                        // Found an active usage limiter commitment
-                        android.util.Log.d("AccessibilityService", "🔒 Found active usage limiter commitment")
-                        return true
-                    }
+            // Sync the global flag to ensure it's always accurate
+            if (MainActivity.isCommitmentActive != isActive) {
+                MainActivity.isCommitmentActive = isActive
+                android.util.Log.d("AccessibilityService", "🔄 Commitment state synced from manager: $isActive")
+                
+                // If it just expired, run cleanup immediately to stop protection services
+                if (!isActive) {
+                    commitmentManager.clearIfExpired()
                 }
             }
             
-            return false
+            return isActive
         } catch (e: Exception) {
             android.util.Log.e("AccessibilityService", "Error checking commitments", e)
-            return false
+            return MainActivity.isCommitmentActive // Fallback to last known state
         }
     }
     
